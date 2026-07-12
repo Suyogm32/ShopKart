@@ -1,11 +1,9 @@
-// Import the AWS SDK
-import AWS from "aws-sdk";
+// Uses the AWS SDK v3 SES client (bundler-friendly — the legacy "aws-sdk"
+// package loads its service definitions from JSON files at runtime, which
+// breaks when webpack bundles server routes for `next build`).
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 
-// Set the region for SES
-AWS.config.update({ region: "ap-south-1" }); // Replace 'us-east-1' with your preferred region
-
-// Create an SES object
-const ses = new AWS.SES({ apiVersion: "2010-12-01" });
+const ses = new SESClient({ region: "ap-south-1" }); // Replace 'ap-south-1' with your preferred region
 
 // Function to send order confirmation email
 export const sendOrderConfirmationEmail = async (userEmail, orderId, name, line_items) => {
@@ -16,7 +14,8 @@ export const sendOrderConfirmationEmail = async (userEmail, orderId, name, line_
     emailContent += currentstring;
   });
   emailContent += "Thank you! Continue shopping with us  😊\n Your order will be deilvered soon!";
-  const params = {
+
+  const command = new SendEmailCommand({
     Destination: {
       ToAddresses: [userEmail], // Destination email address
     },
@@ -31,10 +30,10 @@ export const sendOrderConfirmationEmail = async (userEmail, orderId, name, line_
       },
     },
     Source: "suyogm32+ecomm@gmail.com", // Sender email address (verified in SES)
-  };
+  });
 
   try {
-    await ses.sendEmail(params).promise();
+    await ses.send(command);
   } catch (error) {
     console.error("Error sending order confirmation email:", error);
     // Handle error (e.g., retry logic, error logging)
