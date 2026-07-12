@@ -12,21 +12,21 @@
   },
   "dependencies": {
     "@stripe/stripe-js": "^3.3.0",
-    "aws-sdk": "^2.1601.0",
+    "aws-sdk": "^1.18.0",
     "axios": "^1.6.8",
     "body-parser": "^1.20.2",
     "mongoose": "^8.2.4",
-    "next": "14.1.4",
+    "next": "^14.2.35",
+    "next-auth": "beta",
     "react": "^18",
     "react-dom": "^18",
     "stripe": "^15.1.0",
-    "styled-components": "^6.1.8",
-    "next-auth": "beta"
+    "styled-components": "^6.1.8"
   },
   "devDependencies": {
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
-    "eslint-config-next": "14.1.4",
+    "eslint-config-next": "^16.2.10",
     "eslint-config-prettier": "^10.1.8",
     "postcss": "^8",
     "prettier": "^3.9.5",

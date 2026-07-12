@@ -1,4 +1,4 @@
-export { auth as default } from "@/auth"
+export { auth as default } from "@/auth";
 
 export const config = {
   matcher: [
@@ -11,4 +11,4 @@ export const config = {
     "/api/catagories/:path*",
     "/api/upload/:path*",
   ],
-}
+};
