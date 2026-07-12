@@ -14,11 +14,11 @@ async function uploadFileToS3(fileBuffer, fileName) {
   const fileBuffer_compressed = await sharp(fileBuffer).jpeg({ quality: 50 }).toBuffer();
 
   const params = {
-  Bucket: process.env.S3_BUCKET_NAME,
-  Key: fileName,
-  Body: fileBuffer_compressed,
-  ContentType: "image/jpeg"
-};
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: fileName,
+    Body: fileBuffer_compressed,
+    ContentType: "image/jpeg",
+  };
 
   await s3Client.send(new PutObjectCommand(params));
   return fileName;
