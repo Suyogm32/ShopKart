@@ -7,23 +7,18 @@ import { randomUUID } from "crypto";
 import path from "path";
 
 const s3Client = new S3Client({
-  region: process.env.AWS_S3_REGION,
-  credentials: {
-    accessKeyId: process.env.S3_ACCESS_KEY,
-    secretAccessKey: process.env.S3_SECERET_ACCESS_KEY,
-  },
+  region: process.env.AWS_REGION,
 });
 
 async function uploadFileToS3(fileBuffer, fileName) {
   const fileBuffer_compressed = await sharp(fileBuffer).jpeg({ quality: 50 }).toBuffer();
 
   const params = {
-    Bucket: process.env.S3_BUCKET_NAME,
-    Key: fileName,
-    Body: fileBuffer_compressed,
-    ContentType: "image/jpeg",
-    ACL: "public-read",
-  };
+  Bucket: process.env.S3_BUCKET_NAME,
+  Key: fileName,
+  Body: fileBuffer_compressed,
+  ContentType: "image/jpeg"
+};
 
   await s3Client.send(new PutObjectCommand(params));
   return fileName;
