@@ -1,4 +1,4 @@
-![CI](https://github.com/suyogm32/ecomm/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/Suyogm32/ShopKart/actions/workflows/ci.yml/badge.svg)
 # Shopkart
 
 A Flipkart/Shopify-style e-commerce platform: sellers manage a store from a dashboard, customers shop a public storefront. Both apps share one MongoDB database.
