@@ -1,42 +1,44 @@
 "use client";
 import "@/app/globals.css";
 import Link from "next/link";
-import React,{useEffect} from "react";
-import { usePathname ,useRouter} from "next/navigation";
+import React, { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import Logo from "./component/Logo";
 
-const Nav = ({show}) => {
+const Nav = ({ show }) => {
   const inactivelink = "p-2 mx-2 flex";
   const activelink = inactivelink + " bg-highlight text-black rounded-md";
-  const inactiveIcon="w-6 h-6 gap-6";
-  const activeIcon=inactiveIcon+" text-primary";
+  const inactiveIcon = "w-6 h-6 gap-6";
+  const activeIcon = inactiveIcon + " text-primary";
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, status } = useSession();
-  const ss=typeof window !== "undefined" ? window.sessionStorage : null;
+  const ss = typeof window !== "undefined" ? window.sessionStorage : null;
 
   useEffect(() => {
-    if (status === 'loading') return; // Do nothing while loading
+    if (status === "loading") return; // Do nothing while loading
 
     // Redirect to '/' if session is cleared after logout
-    if ((status === 'unauthenticated') && ss.getItem('user')=== null){
-      console.log(status);
-      console.log(ss.getItem('user'));
-      router.push('/');
+    if (status === "unauthenticated" && ss.getItem("user") === null) {
+      router.push("/");
     }
   }, [session, status, router]);
 
-   const logout=async()=>{
-    await signOut("google",{ redirect: false });
-    ss.removeItem('user');
-    router.push('/');
-    console.log(session);
-  }
+  const logout = async () => {
+    await signOut("google", { redirect: false });
+    ss.removeItem("user");
+    router.push("/");
+  };
   return (
-    <aside className={(show? 'left-0':'-left-full')+" top-0 text-gray-500 gap-2 fixed w-full h-full bg-bgGray md:static md:w-auto transition-all"}>
-     <div className="mb-4 mr-4">
-      <Logo/>
+    <aside
+      className={
+        (show ? "left-0" : "-left-full") +
+        " top-0 text-gray-500 gap-2 fixed w-full h-full bg-bgGray md:static md:w-auto transition-all"
+      }
+    >
+      <div className="mb-4 mr-4">
+        <Logo />
       </div>
       <nav className="mb-4">
         <Link href="/" className={pathname === "/" ? activelink : inactivelink}>
@@ -57,10 +59,7 @@ const Nav = ({show}) => {
           </svg>
           Dashboard
         </Link>
-        <Link
-          href="/orders"
-          className={pathname.startsWith("/orders") ? activelink : inactivelink}
-        >
+        <Link href="/orders" className={pathname.startsWith("/orders") ? activelink : inactivelink}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -80,9 +79,7 @@ const Nav = ({show}) => {
         </Link>
         <Link
           href="/products"
-          className={
-            pathname.startsWith("/products") ? activelink : inactivelink
-          }
+          className={pathname.startsWith("/products") ? activelink : inactivelink}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -90,9 +87,7 @@ const Nav = ({show}) => {
             viewBox="0 0 24 24"
             strokeWidth={1.5}
             stroke="currentColor"
-            className={
-              pathname.startsWith("/products") ? activeIcon : inactiveIcon
-            }
+            className={pathname.startsWith("/products") ? activeIcon : inactiveIcon}
             style={{ width: "2rem", height: "2rem" }}
           >
             <path
@@ -106,9 +101,7 @@ const Nav = ({show}) => {
 
         <Link
           href="/catagories"
-          className={
-            pathname.startsWith("/catagories") ? activelink : inactivelink
-          }
+          className={pathname.startsWith("/catagories") ? activelink : inactivelink}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -129,9 +122,7 @@ const Nav = ({show}) => {
         </Link>
         <Link
           href="/settings"
-          className={
-            pathname.startsWith("/settings") ? activelink : inactivelink
-          }
+          className={pathname.startsWith("/settings") ? activelink : inactivelink}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

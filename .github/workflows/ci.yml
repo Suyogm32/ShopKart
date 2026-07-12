@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-lint:
+    name: ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: seller-portal
+            working-directory: .
+          - app: storefront
+            working-directory: ecomm-front
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ${{ matrix.working-directory }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.working-directory }}
+        run: npm ci --legacy-peer-deps
+
+      - name: Lint
+        working-directory: ${{ matrix.working-directory }}
+        run: npm run lint
+
+      - name: Check formatting
+        working-directory: ${{ matrix.working-directory }}
+        run: npm run format:check
+
+      - name: Build
+        working-directory: ${{ matrix.working-directory }}
+        run: npm run build
+        env:
+          MONGODB_URI: mongodb://localhost:27017/ci-dummy
+          NEXTAUTH_SECRET: ci-dummy-secret
+          NEXTAUTH_URL: http://localhost:3000
+          GOOGLE_CLIENT_ID: ci-dummy
+          GOOGLE_CLIENT_SECRET: ci-dummy
+          AWS_S3_REGION: us-east-1
+          S3_ACCESS_KEY: ci-dummy
+          S3_SECERET_ACCESS_KEY: ci-dummy
+          S3_BUCKET_NAME: ci-dummy-bucket
+          STRIPE_SK: sk_test_dummy
+          STRIPE_PK: pk_test_dummy
+          URL: http://localhost:3000/

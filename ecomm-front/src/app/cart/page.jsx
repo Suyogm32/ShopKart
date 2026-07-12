@@ -8,12 +8,11 @@ import MyCart from "./Cart";
 
 const Cart = () => {
   const { cartProducts, setCartProducts } = useContext(CartContext);
-  console.log("length of CartProducts ",cartProducts?.length);
   return (
     <CartContextProvider>
       <GlobalStyles />
       <Header />
-      <MyCart/>
+      <MyCart />
     </CartContextProvider>
   );
 };

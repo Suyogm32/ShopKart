@@ -1,31 +1,13 @@
-import { User } from "@/models/User";
-import { mongooseConnect } from "@/lib/mongoose";
 import { NextResponse } from "next/server";
 
-export const POST=async(req)=>{
-    try{
-        const { email, password }=await req.json();
-        console.log("At backend",{ email, password });
-        await mongooseConnect();
-        const user=await User.findOne({ email, password });
-        if (user) {
-            // User found, return success response
-            return new NextResponse(JSON.stringify({ "message": "Login successful",user:user}), { status: 200 });
-        } else {
-            // User not found, return error response
-            return new NextResponse(JSON.stringify({ "error": "Invalid username or password" }), { status: 401 });
-        }
-    }
-    catch(error){
-            return new NextResponse(
-                JSON.stringify({
-                    message:"Error creating new product",
-                    error,
-
-                }),
-                {
-                    status:500,
-                }
-            );
-    }
-}
+/**
+ * This route is no longer used.
+ * Login is handled by NextAuth at /api/auth/signin via the CredentialsProvider.
+ * Use: signIn('credentials', { email, password }) from next-auth/react
+ */
+export const POST = () => {
+  return NextResponse.json(
+    { message: "Use POST /api/auth/callback/credentials via NextAuth signIn()." },
+    { status: 410 } // 410 Gone
+  );
+};

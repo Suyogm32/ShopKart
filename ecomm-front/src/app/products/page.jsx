@@ -13,10 +13,9 @@ const Products = () => {
     axios
       .get("/api")
       .then((resp) => {
-        console.log(resp.data);
         setProducts(resp.data);
       })
-      .catch((error) => console.log(error));
+      .catch((error) => console.error("Failed to fetch products:", error));
   }, []);
   return (
     <div>
@@ -27,9 +26,7 @@ const Products = () => {
           <Title>All Products</Title>
           <ProductsGrid>
             {Products?.length > 0 &&
-              Products?.map((product, index) => (
-                <ProductBox key={index} {...product} />
-              ))}
+              Products?.map((product, index) => <ProductBox key={index} {...product} />)}
           </ProductsGrid>
         </Center>
       </CartContextProvider>

@@ -1,90 +1,95 @@
 import { product } from "@/models/product";
 import { mongooseConnect } from "@/lib/mongoose";
 import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/withAuth";
 
+export const POST = withAuth(async (req, _context, session) => {
+  try {
+    const data = await req.json();
+    await mongooseConnect();
 
+    // Enforce that the product is owned by the authenticated seller
+    const myproduct = new product({ ...data, sellerId: session.user.id });
+    await myproduct.save();
 
-export const POST=async(req)=>{
-    try{
-        const data=await req.json();
-        console.log(data);
-        await mongooseConnect();
-        const myproduct=new product(data);
-        await myproduct.save();
-        return new NextResponse(JSON.stringify({message:"the new product is creatsed.",product:myproduct}),{status:201});
+    return NextResponse.json({ message: "Product created.", product: myproduct }, { status: 201 });
+  } catch (error) {
+    console.error("Create product error:", error);
+    return NextResponse.json({ message: "Error creating product." }, { status: 500 });
+  }
+});
+
+export const GET = withAuth(async (req, _context, session) => {
+  try {
+    await mongooseConnect();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (id) {
+      const productById = await product.findOne({ _id: id, sellerId: session.user.id });
+      if (!productById) {
+        return NextResponse.json({ message: "Product not found." }, { status: 404 });
+      }
+      return NextResponse.json(productById, { status: 200 });
     }
-    catch(error){
-            return new NextResponse(
-                JSON.stringify({
-                    message:"Error creating new product",
-                    error,
 
-                }),
-                {
-                    status:500,
-                }
-            );
-    }
-}
+    // Only return products belonging to the authenticated seller
+    const products = await product.find({ sellerId: session.user.id });
+    return NextResponse.json(products, { status: 200 });
+  } catch (error) {
+    console.error("Fetch products error:", error);
+    return NextResponse.json({ message: "Error fetching products." }, { status: 500 });
+  }
+});
 
-export const GET=async(req,res)=>{
-    try{
-        await mongooseConnect();
-        const {searchParams}=new URL(req.url);
-        const id=searchParams.get('id');
-        const sellerId=searchParams.get('sellerId');
-        console.log(sellerId);
-        if(id){
-            const productById = await product.findById(id);
-            return new NextResponse(JSON.stringify(productById), { status: 200 });
-        }else{
-            const products=await product.find({sellerId:sellerId});
-            return new NextResponse(JSON.stringify(products),{status:200});
-        }
-    }
-    catch(error){
-        return new NextResponse("Error in fetching products"+error,{status:500});
-    }
-}
+export const PUT = withAuth(async (req, _context, session) => {
+  try {
+    const { productName, description, price, productImages, category, properties, _id } =
+      await req.json();
 
-export const PUT=async(req,res)=>{
-    try{
-        const {productName,description,price,productImages,category,properties,_id}=await req.json();
-        console.log(category);
-        await mongooseConnect();
-        const myproduct=await product.updateOne({_id},{productName,category,description,price,productImages,properties});
-        return new NextResponse(JSON.stringify({message:'The product with id '+_id+' is updated.',product:myproduct}),{status:201});
+    if (!_id) {
+      return NextResponse.json({ message: "Product id is required." }, { status: 400 });
     }
-    catch(error){
-            return new NextResponse(
-                JSON.stringify({
-                    message:"Error updating the data of a product",
-                    error,
 
-                }),
-                {
-                    status:500,
-                }
-            );
+    await mongooseConnect();
+
+    // Ownership check — only the seller who owns this product can update it
+    const updated = await product.updateOne(
+      { _id, sellerId: session.user.id },
+      { productName, category, description, price, productImages, properties }
+    );
+
+    if (updated.matchedCount === 0) {
+      return NextResponse.json({ message: "Product not found or access denied." }, { status: 404 });
     }
-}
 
-export const DELETE=async(req,res)=>{
-    try{
-        await mongooseConnect();
-        const {searchParams}=new URL(req.url);
-        const id=searchParams.get('id');
+    return NextResponse.json({ message: `Product ${_id} updated.` }, { status: 200 });
+  } catch (error) {
+    console.error("Update product error:", error);
+    return NextResponse.json({ message: "Error updating product." }, { status: 500 });
+  }
+});
 
-        console.log(id);
+export const DELETE = withAuth(async (req, _context, session) => {
+  try {
+    await mongooseConnect();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
 
-        if(id){
-            const deletedProduct=await product.findByIdAndDelete({_id:id});
-            return new NextResponse(JSON.stringify(deletedProduct), { status: 200 });
-        }else{
-            return new NextResponse(JSON.stringify({message:'The product with id '+_id+' is not found.'}),{status:404});
-        }
+    if (!id) {
+      return NextResponse.json({ message: "Product id is required." }, { status: 400 });
     }
-    catch(error){
-        return new NextResponse("Error in fetching products"+error,{status:500});
+
+    // Ownership check — can only delete your own product
+    const deleted = await product.findOneAndDelete({ _id: id, sellerId: session.user.id });
+
+    if (!deleted) {
+      return NextResponse.json({ message: "Product not found or access denied." }, { status: 404 });
     }
-}
+
+    return NextResponse.json({ message: "Product deleted." }, { status: 200 });
+  } catch (error) {
+    console.error("Delete product error:", error);
+    return NextResponse.json({ message: "Error deleting product." }, { status: 500 });
+  }
+});

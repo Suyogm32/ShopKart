@@ -13,11 +13,11 @@ const ColumnsWrapper = styled.div`
   gap: 40px;
   box-shadow: 2px gray;
   margin-top: 30px;
-  @media screen and (min-width:600px){
+  @media screen and (min-width: 600px) {
     grid-template-rows: none;
     grid-template-columns: 1.2fr 0.8fr;
   }
-  @media screen and (min-width:800px){
+  @media screen and (min-width: 800px) {
     grid-template-rows: none;
     grid-template-columns: 1.3fr 0.7fr;
   }
@@ -53,26 +53,24 @@ const MyCart = () => {
     Postalcode: "",
     State: "",
     Country: "",
-    products:cartProducts,
+    products: cartProducts,
   };
-  console.log("length of CartProducts ", cartProducts?.length);
   const [products, setProducts] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
   const [userDetails, setUserDetails] = useState(initialState);
-  const [error,setError]=useState('');
+  const [error, setError] = useState("");
   useEffect(() => {
     if (cartProducts?.length > 0) {
       axios
         .post("/api/cart", { ids: cartProducts })
         .then((resp) => {
           setProducts(resp.data);
-          console.log("data",resp.data);
           const newdetails = { ...userDetails };
           newdetails.products = cartProducts;
           setUserDetails(newdetails);
         })
         .catch((e) => {
-          console.log(e);
+          console.error("Failed to fetch cart products:", e);
         });
     } else {
       setProducts([]);
@@ -91,17 +89,15 @@ const MyCart = () => {
     newdetails[attribute] = e.target.value;
     setUserDetails(newdetails);
   };
-  const saveUserCart=async(e)=>{
+  const saveUserCart = async (e) => {
     e.preventDefault();
-    try{
-      const data=userDetails;
-      console.log("data at checkout",data);
-      const resp=await axios.post("/api/checkout",data);
-      console.log(resp.data.url);
-      if(resp.data.url){
-        window.location=resp.data.url;
+    try {
+      const data = userDetails;
+      const resp = await axios.post("/api/checkout", data);
+      if (resp.data.url) {
+        window.location = resp.data.url;
       }
-    }catch (error) {
+    } catch (error) {
       // Handle Axios POST request error
       console.error("Error creating product:", error);
       setError("Failed to create product. Please try again later.");
@@ -116,8 +112,8 @@ const MyCart = () => {
               <div>
                 <Title>Your Cart is empty.😢</Title>
                 <div>
-                  Your shopping cart is waiting. Give it purpose – fill it with
-                  groceries, clothing, household supplies, electronics and more.
+                  Your shopping cart is waiting. Give it purpose – fill it with groceries, clothing,
+                  household supplies, electronics and more.
                 </div>
               </div>
             )}
@@ -128,9 +124,7 @@ const MyCart = () => {
                   <div key={product._id}>
                     <CartProductBox
                       prod={product}
-                      quantity={
-                        cartProducts?.filter((id) => id === product._id).length
-                      }
+                      quantity={cartProducts?.filter((id) => id === product._id).length}
                     />
                   </div>
                 ))}
@@ -146,66 +140,61 @@ const MyCart = () => {
             <Box>
               <Title>Order Summary</Title>
 
+              <Input
+                type="text"
+                placeholder="Name"
+                value={userDetails.Name}
+                name="Name"
+                onChange={(e) => PutAttribute(e, "Name")}
+              />
+              <Input
+                type="email"
+                placeholder="Email"
+                value={userDetails.Email}
+                name="Email"
+                onChange={(e) => PutAttribute(e, "Email")}
+              />
+              <Input
+                type="text"
+                placeholder="Address"
+                name="Address"
+                value={userDetails.Address}
+                onChange={(e) => PutAttribute(e, "Address")}
+              />
+              <CityHolder>
                 <Input
                   type="text"
-                  placeholder="Name"
-                  value={userDetails.Name}
-                  name="Name"
-                  onChange={(e) => PutAttribute(e, "Name")}
+                  placeholder="City"
+                  name="City"
+                  value={userDetails.City}
+                  onChange={(e) => PutAttribute(e, "City")}
                 />
                 <Input
-                  type="email"
-                  placeholder="Email"
-                  value={userDetails.Email}
-                  name="Email"
-                  onChange={(e) => PutAttribute(e, "Email")}
+                  type="number"
+                  placeholder="PostalCode"
+                  name="PostalCode"
+                  value={userDetails.Postalcode}
+                  onChange={(e) => PutAttribute(e, "Postalcode")}
                 />
-                <Input
-                  type="text"
-                  placeholder="Address"
-                  name="Address"
-                  value={userDetails.Address}
-                  onChange={(e) => PutAttribute(e, "Address")}
-                />
-                <CityHolder>
-                  <Input
-                    type="text"
-                    placeholder="City"
-                    name="City"
-                    value={userDetails.City}
-                    onChange={(e) => PutAttribute(e, "City")}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="PostalCode"
-                    name="PostalCode"
-                    value={userDetails.Postalcode}
-                    onChange={(e) => PutAttribute(e, "Postalcode")}
-                  />
-                </CityHolder>
-                <Input
-                  type="text"
-                  placeholder="State"
-                  name="State"
-                  value={userDetails.State}
-                  onChange={(e) => PutAttribute(e, "State")}
-                />
-                <Input
-                  type="text"
-                  placeholder="Country"
-                  name="Country"
-                  value={userDetails.Country}
-                  onChange={(e) => PutAttribute(e, "Country")}
-                />
-                <input type="hidden" name="productIds" value={cartProducts} />
-                <Btn
-                  secondary={"true"}
-                  block={"true"}
-                  onClick={saveUserCart}
-                >
-                  Continue to Payment
-                </Btn>
-
+              </CityHolder>
+              <Input
+                type="text"
+                placeholder="State"
+                name="State"
+                value={userDetails.State}
+                onChange={(e) => PutAttribute(e, "State")}
+              />
+              <Input
+                type="text"
+                placeholder="Country"
+                name="Country"
+                value={userDetails.Country}
+                onChange={(e) => PutAttribute(e, "Country")}
+              />
+              <input type="hidden" name="productIds" value={cartProducts} />
+              <Btn secondary={"true"} block={"true"} onClick={saveUserCart}>
+                Continue to Payment
+              </Btn>
             </Box>
           )}
         </ColumnsWrapper>

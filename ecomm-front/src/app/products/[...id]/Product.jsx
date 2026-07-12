@@ -86,11 +86,7 @@ const Product = ({ prod }) => {
           {prod?.productImages?.length > 0 &&
             prod.productImages.map((currimg, index) => (
               <ImageWrapper key={index}>
-                <Img
-                  src={currimg}
-                  alt={prod.productName}
-                  onClick={() => setIndex(index)}
-                />
+                <Img src={currimg} alt={prod.productName} onClick={() => setIndex(index)} />
               </ImageWrapper>
             ))}
         </ImagePannel>

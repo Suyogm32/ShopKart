@@ -7,9 +7,9 @@ const BackOrderSchema = new Schema({
   address: String,
   postalCode: String,
   paid: Boolean,
-  sellerId: {type:mongoose.Types.ObjectId,ref:'User'},
-  orderId:{type:mongoose.Types.ObjectId,ref:'Order'},
-  delivered:Boolean
+  sellerId: { type: mongoose.Types.ObjectId, ref: "User" },
+  orderId: { type: mongoose.Types.ObjectId, ref: "Order" },
+  delivered: Boolean,
 });
 
-export const backOrders = models.backOrders || model("backOrders",BackOrderSchema);
+export const backOrders = models.backOrders || model("backOrders", BackOrderSchema);

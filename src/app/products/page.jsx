@@ -9,17 +9,13 @@ const Products = () => {
 
   useEffect(() => {
     const id = JSON.parse(ss.getItem("user"))?.userId;
-    axios.get("/api/products?sellerId="+id).then((resp) => {
-      console.log(resp.data);
+    axios.get("/api/products").then((resp) => {
       setProducts(resp.data);
     });
   }, []);
   return (
     <Applayout className="text-blue-900 px-2">
-      <Link
-        className="btn-primary mb-4"
-        href={"/products/new"}
-      >
+      <Link className="btn-primary mb-4" href={"/products/new"}>
         Add new Product{" "}
       </Link>
       <table className="basic mt-2">

@@ -51,7 +51,7 @@ const NavButton = styled.button`
   top: 35px;
   right: 20px;
   position: absolute;
-  
+
   @media screen and (min-width: 800px) {
     display: none;
   }
@@ -65,9 +65,9 @@ const Header = () => {
         <Wrapper showNav={showNav}>
           <Logo href={"/"}>Ecommerce</Logo>
           <StyledNav showNav={showNav} onClick={() => setShowNav((prev) => !prev)}>
-            <Logo href={"/"} >Home</Logo>
+            <Logo href={"/"}>Home</Logo>
             <Logo href={"/products"}>Products</Logo>
-            <Logo href={"/catagories"} >Catagories</Logo>
+            <Logo href={"/catagories"}>Catagories</Logo>
             <Logo href={"/account"}>Account</Logo>
             <Logo href={"/cart"}>Cart ({cartProducts?.length || 0})</Logo>
           </StyledNav>

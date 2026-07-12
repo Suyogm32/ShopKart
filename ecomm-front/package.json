@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@stripe/stripe-js": "^3.3.0",
@@ -18,13 +20,16 @@
     "react": "^18",
     "react-dom": "^18",
     "stripe": "^15.1.0",
-    "styled-components": "^6.1.8"
+    "styled-components": "^6.1.8",
+    "next-auth": "beta"
   },
   "devDependencies": {
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
     "eslint-config-next": "14.1.4",
+    "eslint-config-prettier": "^10.1.8",
     "postcss": "^8",
+    "prettier": "^3.9.5",
     "tailwindcss": "^3.3.0"
   }
 }

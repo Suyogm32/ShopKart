@@ -5,47 +5,48 @@ import { useRouter } from "next/navigation";
 import Spinner from "./Spinner";
 import { ReactSortable } from "react-sortablejs";
 
-
 const ProductForm = ({
   _id,
   productName: existingProductName,
   description: existingDescription,
   price: existingPrice,
   productImages: existingProductImages,
-  category:assignedCategory,
-  properties:existingProperties
+  category: assignedCategory,
+  properties: existingProperties,
 }) => {
   const [productName, setProductName] = useState(existingProductName || "");
   const [description, setDescription] = useState(existingDescription || "");
-  const [price, setPrice] = useState(existingPrice || 0); 
+  const [price, setPrice] = useState(existingPrice || 0);
   const [productImages, setProductImages] = useState(existingProductImages || []);
   const [goToProducts, setGoToProducts] = useState(false);
   const [error, setError] = useState("");
-  const [isUploading,setIsUploading]=useState(false);
-  const [category,setCategory]=useState(assignedCategory || '');
-  const [categories,setCatagories]=useState([]);
-  const [productProperties,setProductProperties]=useState(existingProperties || {});
-  const ss=typeof window !== "undefined" ? window.sessionStorage : null;
+  const [isUploading, setIsUploading] = useState(false);
+  const [category, setCategory] = useState(assignedCategory || "");
+  const [categories, setCatagories] = useState([]);
+  const [productProperties, setProductProperties] = useState(existingProperties || {});
+  const ss = typeof window !== "undefined" ? window.sessionStorage : null;
   const router = useRouter();
 
-  useEffect(()=>{
-    axios.get('/api/catagories')
-      .then(resp=>setCatagories(resp.data));
-  },[]);
+  useEffect(() => {
+    axios.get("/api/catagories").then((resp) => setCatagories(resp.data));
+  }, []);
   const saveProduct = async (e) => {
     e.preventDefault();
     try {
-      const sellerId=JSON.parse(ss.getItem('user'))?.userId;
-      console.log(sellerId);
-      const currentData = { productName, description, price,productImages,category,properties:productProperties,sellerId};
+      const currentData = {
+        productName,
+        description,
+        price,
+        productImages,
+        category,
+        properties: productProperties,
+      };
       if (_id) {
         //This is for updating a product in DB
-        const response = await axios.put("/api/products", {...currentData, _id});
-        console.log("Product updated successfully:", response.data);
+        await axios.put("/api/products", { ...currentData, _id });
       } else {
         //this is for creating a new product in DB
-        const response = await axios.post("/api/products", currentData);
-        console.log("Product created successfully:", response.data);
+        await axios.post("/api/products", currentData);
       }
       // Reset form fields and error state
       setProductName("");
@@ -82,40 +83,36 @@ const ProductForm = ({
     setIsUploading(false);
   };
 
-  const updateImagesOrder=(images)=>{
+  const updateImagesOrder = (images) => {
     setProductImages(images);
-  }
+  };
 
-  let propertiesToFill=[];
-  if(categories.length>0 && category){
-    // console.log("All Catagories are ",categories);
-    let selectedCatProps=categories.find(({_id})=>_id===category);
-    // console.log("selectedCatProps are ->",selectedCatProps);
-    if(selectedCatProps?.properties.length>0){
+  let propertiesToFill = [];
+  if (categories.length > 0 && category) {
+    let selectedCatProps = categories.find(({ _id }) => _id === category);
+    if (selectedCatProps?.properties.length > 0) {
       propertiesToFill.push(...selectedCatProps?.properties);
     }
-    // console.log('current array of props',propertiesToFill.length);
-    while(selectedCatProps?.parentCatagory?._id){
-      let parentProperties=categories.find(({_id})=>_id===selectedCatProps.parentCatagory._id);
-      if(parentProperties.properties.length>0){
+    while (selectedCatProps?.parentCatagory?._id) {
+      let parentProperties = categories.find(
+        ({ _id }) => _id === selectedCatProps.parentCatagory._id
+      );
+      if (parentProperties.properties.length > 0) {
         propertiesToFill.push(...parentProperties.properties);
       }
-      selectedCatProps=parentProperties
+      selectedCatProps = parentProperties;
     }
-    console.log('full array of props',propertiesToFill.length);
-    console.log('full array of props',propertiesToFill);
   }
 
-  const setProductProp=(propName,propValue)=>{
-    setProductProperties(prev=>{
-      const newProps={...prev};
-      newProps[propName]=propValue;
+  const setProductProp = (propName, propValue) => {
+    setProductProperties((prev) => {
+      const newProps = { ...prev };
+      newProps[propName] = propValue;
       return newProps;
-    })
+    });
   };
   return (
     <form onSubmit={saveProduct}>
-
       <label>Product Name</label>
       <input
         type="text"
@@ -123,51 +120,53 @@ const ProductForm = ({
         value={productName}
         onChange={(e) => setProductName(e.target.value)}
       />
-        <label>Product Category</label>
-        <select value={category} onChange={e=> setCategory(e.target.value)}>
-          <option value="">Uncatagorized</option>
-          { categories?.length && 
-            categories.map((category,index)=>(
-              <option key={index} value={category._id}>{category.catagoryName}</option>
-            ))
-
-          }
-        </select>
-        {propertiesToFill.length>0 && 
-          propertiesToFill.map((p,index)=>(
-            <div key={index} className="">
-             <label> {p.name[0].toUpperCase()+p.name.substring(1)}</label>
-             <div>
-             <select 
-                value={productProperties[p.name]} 
-                onChange={(e)=>setProductProp(p.name,e.target.value)}
+      <label>Product Category</label>
+      <select value={category} onChange={(e) => setCategory(e.target.value)}>
+        <option value="">Uncatagorized</option>
+        {categories?.length &&
+          categories.map((category, index) => (
+            <option key={index} value={category._id}>
+              {category.catagoryName}
+            </option>
+          ))}
+      </select>
+      {propertiesToFill.length > 0 &&
+        propertiesToFill.map((p, index) => (
+          <div key={index} className="">
+            <label> {p.name[0].toUpperCase() + p.name.substring(1)}</label>
+            <div>
+              <select
+                value={productProperties[p.name]}
+                onChange={(e) => setProductProp(p.name, e.target.value)}
               >
-                {p.values?.map((val,index)=>(
-                    <option value={val} key={index}>{val}</option>
-                  ))    
-                }
-             </select>
-             </div> 
+                {p.values?.map((val, index) => (
+                  <option value={val} key={index}>
+                    {val}
+                  </option>
+                ))}
+              </select>
             </div>
-          ))
-        }
+          </div>
+        ))}
       <label>Product Images</label>
       <div className="flex flex-wrap gap-2 mb-2">
-        <ReactSortable list={productImages} className="flex flex-wrap gap-2" setList={updateImagesOrder}>
-        {!!productImages?.length &&
-          productImages.map((link) => (
-            <div key={link} className="inline-block h-24 p-2 shadow-md rounded-sm">
-              <img src={link} alt={link}  className="rounded-sm"/>
-            </div>
-          ))}
-          </ReactSortable>
-          {
-            isUploading && (
-              <div className="h-24 bg-gray-200 p-1 flex items-center">
-                <Spinner/>
-                </div>
-            )
-          }
+        <ReactSortable
+          list={productImages}
+          className="flex flex-wrap gap-2"
+          setList={updateImagesOrder}
+        >
+          {!!productImages?.length &&
+            productImages.map((link) => (
+              <div key={link} className="inline-block h-24 p-2 shadow-md rounded-sm">
+                <img src={link} alt={link} className="rounded-sm" />
+              </div>
+            ))}
+        </ReactSortable>
+        {isUploading && (
+          <div className="h-24 bg-gray-200 p-1 flex items-center">
+            <Spinner />
+          </div>
+        )}
 
         <label className="w-24 h-24 flex flex-col items-center justify-center text-sm rounded-lg bg-gray-200">
           <svg
@@ -196,7 +195,6 @@ const ProductForm = ({
         </label>
       </div>
       {!productImages?.length && <div>No images of product.</div>}
-      
 
       <label>Description</label>
       <textarea
@@ -216,7 +214,6 @@ const ProductForm = ({
       <button className="btn-primary" type="submit">
         Save
       </button>
-
     </form>
   );
 };

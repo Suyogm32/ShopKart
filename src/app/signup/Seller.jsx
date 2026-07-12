@@ -2,13 +2,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import {useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 const Seller = () => {
-  const session=useSession();
-  console.log(session);
+  const session = useSession();
   const initialState = {
-    name:"",
-    email:"",
+    name: "",
+    email: "",
     phone: "",
     address: "",
     city: "",
@@ -17,21 +16,20 @@ const Seller = () => {
     country: "",
     password: "",
   };
- 
-  console.log(initialState);
+
   const [sellerDetails, setSellerDetails] = useState(initialState);
-  const [error,setError]=useState('');
-  const [uid,setUid]=useState('');
+  const [error, setError] = useState("");
+  const [uid, setUid] = useState("");
   const router = useRouter();
-  useEffect(()=>{
+  useEffect(() => {
     setUid(session?.data?.user.id);
     const newdetails = { ...sellerDetails };
-    if(session.data){
-      newdetails.name=session.data.user.name;
-      newdetails.email=session.data.user.email;
+    if (session.data) {
+      newdetails.name = session.data.user.name;
+      newdetails.email = session.data.user.email;
       setSellerDetails(newdetails);
     }
-  },[session]);
+  }, [session]);
   const PutAttribute = (e, attribute) => {
     const newdetails = { ...sellerDetails };
     newdetails[attribute] = e.target.value;
@@ -40,14 +38,11 @@ const Seller = () => {
   const saveShopKeeper = async (e) => {
     e.preventDefault();
     try {
-      const data = {...sellerDetails,_id:uid};
-      console.log("data->",data);
-      console.log("uid->",uid);
-      if(uid){
-        const resp=await axios.put("/api/signup",data);
-      }else{
-        const resp=await axios.post("/api/signup",data);
-        console.log(resp.data);
+      const data = { ...sellerDetails, _id: uid };
+      if (uid) {
+        await axios.put("/api/signup", data);
+      } else {
+        await axios.post("/api/signup", data);
       }
       router.push("/");
     } catch (error) {
@@ -56,10 +51,10 @@ const Seller = () => {
       setError("Failed to create product. Please try again later.");
     }
   };
-  
+
   return (
     <div className="w-1/3 flex flex-col gap-2 justify-center">
-    <h1> Become a Seller</h1>
+      <h1> Become a Seller</h1>
       <input
         type="text"
         placeholder="name"
@@ -123,7 +118,9 @@ const Seller = () => {
         value={sellerDetails.password}
         onChange={(e) => PutAttribute(e, "password")}
       />
-      <button onClick={saveShopKeeper} className="bg-white text-black p-2 px-4 rounded-lg">Submit</button>
+      <button onClick={saveShopKeeper} className="bg-white text-black p-2 px-4 rounded-lg">
+        Submit
+      </button>
     </div>
   );
 };

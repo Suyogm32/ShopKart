@@ -7,9 +7,9 @@ const NewProduct = () => {
   return (
     <Applayout>
       <h1>New Product</h1>
-    <ProductForm/>
+      <ProductForm />
     </Applayout>
-  )
+  );
 };
 
 export default NewProduct;

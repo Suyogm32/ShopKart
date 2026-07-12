@@ -1,65 +1,68 @@
-import { Passero_One } from 'next/font/google';
-import React, { useState } from 'react'
-import axios from "axios";
-import { useRouter } from "next/navigation";
-const Login = ({ session }) => {
-    const initialState={
-        email:'',
-        password:'',
-    }
-    const [loginData,setLoginData]=useState(initialState);
-    const [error,setError]=useState('');
-    const router = useRouter();
-    const ss=typeof window !== "undefined" ? window.sessionStorage : null;
-    const PutAttribute = (e, attribute) => {
-        const newdetails = { ...loginData };
-        newdetails[attribute] = e.target.value;
-        setLoginData(newdetails);
-      };
+"use client";
+import React, { useState } from "react";
+import { signIn } from "next-auth/react";
 
-      const checkUser=async(e)=>{
-        e.preventDefault();
-        try{
-          const data=loginData;
-          console.log(data);
-          const resp=await axios.post("/api/login",data);
-          console.log(resp.data);
-          if(resp.data.user){
-            session.status="authenticated";
-            session.data=resp.data.user;
-            const userInfo={
-                userId:resp.data.user._id,
-                useremail:resp.data.user.email,
-                uname:resp.data.user.name,
-            }
-            ss.setItem("user",JSON.stringify(userInfo));
-          }
-          console.log(session);
-        }catch (error) {
-          // Handle Axios POST request error
-          console.error("Error creating product:", error);
-          setError("Failed to create product. Please try again later.");
-        }
-      };
+const Login = () => {
+  const [loginData, setLoginData] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const putAttribute = (e, attribute) => {
+    setLoginData((prev) => ({ ...prev, [attribute]: e.target.value }));
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const result = await signIn("credentials", {
+        email: loginData.email,
+        password: loginData.password,
+        redirect: false, // Handle redirect ourselves so we can show errors
+      });
+
+      if (result?.error) {
+        setError("Invalid email or password.");
+      }
+      // On success, the useSession() hook in the parent page will update
+      // automatically and re-render the authenticated dashboard.
+    } catch (err) {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className='flex flex-col justify-center items-center'>
-        <input
+    <form onSubmit={handleLogin} className="flex flex-col gap-2">
+      {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+      <input
         type="email"
-        placeholder="email"
+        placeholder="Email"
         name="email"
         value={loginData.email}
-        onChange={(e) => PutAttribute(e, "email")}
+        onChange={(e) => putAttribute(e, "email")}
+        required
       />
       <input
         type="password"
-        placeholder="password"
+        placeholder="Password"
         name="password"
         value={loginData.password}
-        onChange={(e) => PutAttribute(e, "password")}
+        onChange={(e) => putAttribute(e, "password")}
+        required
       />
-      <button onClick={checkUser} className="bg-white text-black p-2 px-4 rounded-lg">Login</button>
-    </div>
-  )
-}
+      <button
+        type="submit"
+        disabled={loading}
+        className="bg-white text-black p-2 px-4 rounded-lg disabled:opacity-50"
+      >
+        {loading ? "Signing in…" : "Login"}
+      </button>
+    </form>
+  );
+};
 
-export default Login
+export default Login;

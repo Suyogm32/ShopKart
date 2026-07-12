@@ -5,8 +5,7 @@ import { NextResponse } from "next/server";
 export const POST = async (req, res) => {
   try {
     await mongooseConnect();
-    const data =await req.json();
-    console.log("ids are ",data);
+    const data = await req.json();
     const products = await product.find({ _id: { $in: data.ids } });
     return new NextResponse(JSON.stringify(products), { status: 200 });
   } catch (error) {

@@ -4,18 +4,18 @@ import { WhiteBox } from "../components/ProductBox";
 import { CartContext } from "../components/CartContext";
 const ItemWrapper = styled.div`
   display: grid;
-  grid-template-columns: 1.5fr .5fr;
+  grid-template-columns: 1.5fr 0.5fr;
   gap: 20px;
   height: 150px;
   margin: 20px;
   /* border-radius: 10px; */
   border-top: 1px solid rgba(0, 0, 0, 0.1);
   /* border: 1px solid black; */
-  @media screen and (min-width:380px){
+  @media screen and (min-width: 380px) {
     grid-template-rows: none;
     grid-template-columns: 1fr 1fr;
   }
-  @media screen and (min-width:800px){
+  @media screen and (min-width: 800px) {
     grid-template-rows: none;
     grid-template-columns: 0.7fr 1.3fr;
   }
@@ -38,13 +38,13 @@ const ImgWrrapper = styled.div`
 const ProductTitle = styled.div`
   font-size: 0.75rem;
   font-weight: 500;
-  @media screen and (min-width:800px){
+  @media screen and (min-width: 800px) {
     font-size: 0.75rem;
-  font-weight: 500;
+    font-weight: 500;
   }
-  @media screen and (min-width:800px){
+  @media screen and (min-width: 800px) {
     font-size: 1rem;
-  font-weight: 500;
+    font-weight: 500;
   }
 `;
 const StyledQuantity = styled.div`
@@ -68,11 +68,11 @@ const Quant = styled.div`
   padding-left: 1px;
   padding-right: 1px;
   margin: 1px;
-  @media screen and (min-width:380px) {
+  @media screen and (min-width: 380px) {
     padding: 2px;
-  padding-left: 1px;
-  padding-right: 1px;
-  margin: 2px;
+    padding-left: 1px;
+    padding-right: 1px;
+    margin: 2px;
   }
 `;
 const CartProductBox = ({ prod, quantity }) => {
@@ -86,7 +86,6 @@ const CartProductBox = ({ prod, quantity }) => {
     setCartProducts((prev) => {
       let arr = [...prev];
       const index = arr.indexOf(id);
-      console.log(index);
       if (index > -1) {
         arr.splice(index, 1);
       }

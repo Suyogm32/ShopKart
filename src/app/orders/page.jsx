@@ -10,9 +10,9 @@ const Order = () => {
   useEffect(() => {
     const id = JSON.parse(ss.getItem("user"))?.userId;
     axios
-      .get('/api/orders?id='+id)
+      .get("/api/orders?id=" + id)
       .then((resp) => setOrders(resp.data))
-      .catch((error) => console.log(error));
+      .catch((error) => console.error("Failed to fetch orders:", error));
   }, []);
   return (
     <Applayout>
@@ -29,18 +29,18 @@ const Order = () => {
           </tr>
         </thead>
         <tbody>
-          {
-            orders?.map((order,index)=>(
-              <tr key={index}>
-                <td>{order.productName}</td>
-                <td>{order.quantity}</td>
-                <td>{order.price}</td>
-                <td>{order.address},{order.postalCode}</td>
-                <td>{order.paid? <div>Paid</div>:<div>Unpaid</div>}</td>
-                <td>{order.delivered? <div>Delivered</div>:<div>Pending</div>}</td>
-              </tr>
-            ))
-          }
+          {orders?.map((order, index) => (
+            <tr key={index}>
+              <td>{order.productName}</td>
+              <td>{order.quantity}</td>
+              <td>{order.price}</td>
+              <td>
+                {order.address},{order.postalCode}
+              </td>
+              <td>{order.paid ? <div>Paid</div> : <div>Unpaid</div>}</td>
+              <td>{order.delivered ? <div>Delivered</div> : <div>Pending</div>}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </Applayout>

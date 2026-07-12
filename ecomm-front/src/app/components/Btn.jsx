@@ -1,7 +1,7 @@
 import React from "react";
 import styled, { css } from "styled-components";
 
-export const ButtonStyle =css`
+export const ButtonStyle = css`
   padding: 8px;
   padding-left: 0px;
   margin: 5px;
@@ -31,23 +31,18 @@ export const ButtonStyle =css`
       padding: 8px;
     `};
 
-  ${(props)=> props.block && 
+  ${(props) =>
+    props.block &&
     css`
       display: block;
       width: 100%;
-      
-    `
-  }
+    `}
 `;
 const StyledBtn = styled.button`
   ${ButtonStyle}
 `;
 const Btn = ({ children, ...rest }) => {
-  return (
-
-      <StyledBtn {...rest}>{children}</StyledBtn>
-
-  );
+  return <StyledBtn {...rest}>{children}</StyledBtn>;
 };
 
 export default Btn;
