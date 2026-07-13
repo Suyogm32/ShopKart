@@ -11,7 +11,13 @@ const s3Client = new S3Client({
 });
 
 async function uploadFileToS3(fileBuffer, fileName) {
-  const fileBuffer_compressed = await sharp(fileBuffer).jpeg({ quality: 50 }).toBuffer();
+  // Resize (not just recompress) — uploaded photos are often much larger than
+  // they'll ever be displayed at, and shipping full-resolution originals to
+  // the storefront is the main cause of slow image loads there.
+  const fileBuffer_compressed = await sharp(fileBuffer)
+    .resize({ width: 1200, withoutEnlargement: true })
+    .jpeg({ quality: 50 })
+    .toBuffer();
 
   const params = {
     Bucket: process.env.S3_BUCKET_NAME,
@@ -34,10 +40,25 @@ export const POST = withAuth(async (req) => {
     }
 
     const links = [];
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
     for (const file of files) {
       const buffer = Buffer.from(await file.arrayBuffer());
 
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        return NextResponse.json(
+          { message: `Unsupported file type: ${file.type}` },
+          { status: 400 }
+        );
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { message: "File too large. Maximum size is 10MB." },
+          { status: 400 }
+        );
+      }
       // Sanitize filename: use a UUID + original extension to avoid S3 key issues
       const ext = path.extname(file.name).toLowerCase() || ".jpg";
       const safeFileName = `${randomUUID()}${ext}`;

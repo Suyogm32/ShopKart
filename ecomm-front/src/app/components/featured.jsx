@@ -7,6 +7,7 @@ import CartIcon from "./icons/CartIcon";
 import { CartContext } from "./CartContext";
 import { StyleSheetManager } from "styled-components";
 import isPropValid from "@emotion/is-prop-valid";
+import Image from "next/image";
 
 const Bg = styled.div`
   background-color: #222;
@@ -78,10 +79,16 @@ const FeaturedProduct = ({ product }) => {
               </ButtonWrapper>
             </Colmns>
             <Colmns>
-              <img
-                src="https://dawid-next-ecommerce.s3.amazonaws.com/1679151719649.png"
-                alt="mac-image"
-              />
+              {product.productImages?.[0] && (
+                <Image
+                  src={product.productImages[0]}
+                  alt={product.productName || "Featured product"}
+                  width={500}
+                  height={500}
+                  style={{ width: "100%", height: "auto" }}
+                  priority
+                />
+              )}
             </Colmns>
           </Wrapper>
         </Center>

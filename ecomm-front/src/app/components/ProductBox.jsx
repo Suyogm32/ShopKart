@@ -3,6 +3,7 @@ import React, { useContext } from "react";
 import styled from "styled-components";
 import CartIcon from "./icons/CartIcon";
 import Link from "next/link";
+import Image from "next/image";
 import { CartContext } from "./CartContext";
 const ProductWrapper = styled(Link)`
   height: 250px;
@@ -20,6 +21,8 @@ export const WhiteBox = styled.div`
   img {
     max-width: 100%;
     height: 150px;
+    width: auto;
+    object-fit: contain;
   }
 `;
 const Title = styled.div`
@@ -79,7 +82,9 @@ const ProductBox = ({ _id, productName, productImages, price }) => {
   return (
     <ProductWrapper href={url}>
       <WhiteBox>
-        <img src={productImages[0]} alt={productName} />
+        {productImages?.[0] && (
+          <Image src={productImages[0]} alt={productName} width={200} height={150} />
+        )}
       </WhiteBox>
       <ProductInfoBox>
         <div>

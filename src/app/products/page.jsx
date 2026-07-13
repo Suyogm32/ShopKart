@@ -5,14 +5,16 @@ import Link from "next/link";
 import axios from "axios";
 const Products = () => {
   const [products, setProducts] = useState([]);
-  const ss = typeof window !== "undefined" ? window.sessionStorage : null;
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    const id = JSON.parse(ss.getItem("user"))?.userId;
-    axios.get("/api/products").then((resp) => {
-      setProducts(resp.data);
+    axios.get(`/api/products?page=${page}`).then((resp) => {
+      setProducts(resp.data.data);
+      setTotalPages(resp.data.pagination.totalPages);
     });
-  }, []);
+  }, [page]);
+
   return (
     <Applayout className="text-blue-900 px-2">
       <Link className="btn-primary mb-4" href={"/products/new"}>
@@ -69,6 +71,27 @@ const Products = () => {
           ))}
         </tbody>
       </table>
+      {totalPages > 1 && (
+        <div className="flex gap-2 mt-4 items-center">
+          <button
+            className="btn-default"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            Prev
+          </button>
+          <span>
+            Page {page} of {totalPages}
+          </span>
+          <button
+            className="btn-default"
+            disabled={page >= totalPages}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </button>
+        </div>
+      )}
     </Applayout>
   );
 };

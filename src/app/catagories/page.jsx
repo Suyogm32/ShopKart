@@ -18,7 +18,7 @@ const Catagories = () => {
 
   const fetchCtagories = () => {
     axios.get("/api/catagories").then((resp) => {
-      setCatagories(resp.data);
+      setCatagories(resp.data.data);
     });
   };
 

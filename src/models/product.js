@@ -6,9 +6,9 @@ const ProductSchema = new Schema(
     description: String,
     price: { type: Number, required: true },
     productImages: [{ type: String }],
-    category: { type: mongoose.Types.ObjectId, ref: "Catagory" },
+    category: { type: mongoose.Types.ObjectId, ref: "Catagory", index: true },
     properties: { type: Object },
-    sellerId: { type: mongoose.Types.ObjectId, ref: "User" },
+    sellerId: { type: mongoose.Types.ObjectId, ref: "User", index: true },
   },
   {
     timestamps: true,

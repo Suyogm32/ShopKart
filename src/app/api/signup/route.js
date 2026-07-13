@@ -2,22 +2,45 @@ import { User } from "@/models/User";
 import { mongooseConnect } from "@/lib/mongoose";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { rateLimit } from "@/lib/rateLimit";
+
+import { z } from "zod";
+
+const signupSchema = z.object({
+  name: z.string().optional(),
+  email: z.string().email("Invalid email address."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  postalcode: z.string().optional(),
+  state: z.string().optional(),
+  country: z.string().optional(),
+});
 
 export const POST = async (req) => {
   try {
-    const { name, email, password, phone, address, city, postalcode, state, country } =
-      await req.json();
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const { allowed } = rateLimit(`signup:${ip}`, { limit: 5, windowMs: 60_000 });
 
-    // --- Validation ---
-    if (!email || !password) {
-      return NextResponse.json({ message: "Email and password are required." }, { status: 400 });
-    }
-    if (password.length < 8) {
+    if (!allowed) {
       return NextResponse.json(
-        { message: "Password must be at least 8 characters." },
+        { message: "Too many signup attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+
+    const body = await req.json();
+    const parsed = signupSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { message: "Invalid input.", errors: parsed.error.flatten().fieldErrors },
         { status: 400 }
       );
     }
+
+    const { name, email, password, phone, address, city, postalcode, state, country } = parsed.data;
 
     await mongooseConnect();
 
