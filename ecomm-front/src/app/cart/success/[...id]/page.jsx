@@ -4,8 +4,7 @@ import { GlobalStyles } from "@/app/page";
 import Header from "@/app/components/Header";
 import { Title } from "@/app/components/featured";
 import styled from "styled-components";
-import { usePathname } from "next/navigation";
-import axios from "axios";
+
 const WhiteBox = styled.div`
   background-color: white;
   padding: 20px;
@@ -22,19 +21,12 @@ const WhiteBox = styled.div`
     border: 1px solid white;
   }
 `;
+
 const Success = () => {
   const ls = typeof window !== "undefined" ? window.localStorage : null;
-  const path = usePathname();
-  let patharray = path.split("/");
-  let id = patharray[patharray.length - 1];
-  const data = {
-    _id: id,
-    Paid: true,
-  };
+
   useEffect(() => {
-    axios.put("/api/success", data).then((resp) => {
-      ls.removeItem("cart");
-    });
+    ls?.removeItem("cart");
   }, []);
 
   return (
