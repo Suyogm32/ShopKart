@@ -66,7 +66,9 @@ export default function Home() {
         <div className="text-blue-900 flex justify-between">
           <h2 className="font-bold">Hello,{JSON.parse(ss.getItem("user"))?.uname}</h2>
           <div className="flex gap-1 text-black bg-gray-200 rounde-lg overflow-hidden">
-            <img src={session.data?.user?.image} alt="userimg" className="w-6 h-6 rounded-lg" />
+            {session.data?.user?.image && (
+              <img src={session.data.user.image} alt="userimg" className="w-6 h-6 rounded-lg" />
+            )}
             <span className="px-2">{JSON.parse(ss.getItem("user"))?.useremail}</span>
           </div>
         </div>

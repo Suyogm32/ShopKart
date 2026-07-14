@@ -1,18 +1,27 @@
-export { default } from "next-auth/middleware";
+import NextAuth from "next-auth";
+import { NextResponse } from "next/server";
+import { authConfig } from "./auth.config";
 
-/**
- * Any path listed here requires a valid session.
- * Unauthenticated requests are redirected to the signIn page (defined in authOptions.pages).
- */
+const { auth } = NextAuth(authConfig);
+
+export default auth((req) => {
+  if (!req.auth) {
+    const isApiRoute = req.nextUrl.pathname.startsWith("/api/");
+
+    if (isApiRoute) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    return NextResponse.redirect(new URL("/", req.nextUrl.origin));
+  }
+});
+
 export const config = {
   matcher: [
-    // Dashboard pages
     "/products/:path*",
     "/orders/:path*",
     "/catagories/:path*",
     "/settings/:path*",
-
-    // API routes — returns 401 JSON instead of redirect
     "/api/products/:path*",
     "/api/orders/:path*",
     "/api/catagories/:path*",

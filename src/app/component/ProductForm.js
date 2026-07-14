@@ -28,7 +28,7 @@ const ProductForm = ({
   const router = useRouter();
 
   useEffect(() => {
-    axios.get("/api/catagories").then((resp) => setCatagories(resp.data));
+    axios.get("/api/catagories").then((resp) => setCatagories(resp.data.data));
   }, []);
   const saveProduct = async (e) => {
     e.preventDefault();

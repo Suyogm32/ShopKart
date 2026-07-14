@@ -1,19 +1,20 @@
-import { MongoDBAdapter } from "@auth/mongodb-adapter";
-import NextAuth from "next-auth/next";
+import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-import clientPromise from "./mongodb";
-import { mongooseConnect } from "./mongoose";
+import { MongoDBAdapter } from "@auth/mongodb-adapter";
+import clientPromise from "./lib/mongodb";
+import { mongooseConnect } from "./lib/mongoose";
 import { User } from "@/models/User";
 import bcrypt from "bcryptjs";
+import { authConfig } from "./auth.config";
 
-export const authOptions = {
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
-
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -24,7 +25,6 @@ export const authOptions = {
         if (!credentials?.email || !credentials?.password) return null;
 
         await mongooseConnect();
-        // .select('+password') ensures password is returned even if hidden by default
         const user = await User.findOne({ email: credentials.email }).select("+password");
 
         if (!user || !user.password) return null;
@@ -40,32 +40,5 @@ export const authOptions = {
       },
     }),
   ],
-
-  adapter: MongoDBAdapter(clientPromise),
-
-  // JWT strategy works in both serverless and self-hosted deployments
-  session: { strategy: "jwt" },
-
-  callbacks: {
-    async jwt({ token, user }) {
-      // On first sign-in, `user` is available — persist id into the token
-      if (user) {
-        token.id = user.id;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      // Make user id available in the client session
-      if (token && session.user) {
-        session.user.id = token.id;
-      }
-      return session;
-    },
-  },
-
-  pages: {
-    signIn: "/", // Redirect unauthenticated users to home page
-  },
-
-  secret: process.env.NEXTAUTH_SECRET,
-};
+  adapter: MongoDBAdapter(clientPromise)
+});
