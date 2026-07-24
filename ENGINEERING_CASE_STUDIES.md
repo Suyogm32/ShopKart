@@ -226,6 +226,71 @@ Interview/resume prep material. Each entry below is a real fix made during the p
 
 ---
 
+## 14. Destructive-action confirmations relying on a blocking, unstyled third-party modal
+
+**Problem:** Delete confirmations across the app used `react-confirm-alert`, a third-party dialog library with its own default styling — a full-screen dark overlay and a boxed dialog that had no dark-mode support and visibly didn't match the rest of the redesigned UI.
+
+**How found:** Reported directly via screenshot — the confirmation dialog looked jarring next to the rest of the app, and fully obscured the page behind it.
+
+**Ways to solve it:**
+- Override `react-confirm-alert`'s CSS to match the app's design tokens.
+- Replace it entirely with a custom confirmation built on `react-hot-toast`, already a dependency, rendered as a small non-blocking card instead of a full-screen modal.
+
+**Chosen approach:** A custom `confirmToast()` helper. Avoided fighting a third-party library's internal styling, kept the page behind the confirmation fully visible and interactive, and reused a dependency already in the project instead of pulling in CSS overrides for a second one.
+
+**After-effect:** Replaced every `confirmAlert()` call (Products, Categories) with `confirmToast()`. Took a few rounds to get right: the standard `toast()` call still inherits react-hot-toast's own default wrapper styling, which fought with custom background colors and left the card looking translucent no matter what Tailwind classes were applied to the inner content — the actual fix was switching to `toast.custom()`, which renders exactly the given JSX with zero default styling. Also moved off a dark-mode color variant using an opacity modifier (`amber-950/40`), which blended into the app's own dark background and defeated the point of an "alarming" warning color — settled on one solid, theme-independent amber instead.
+
+---
+
+## 15. Full-page navigation breaking flow on create/edit
+
+**Problem:** Creating or editing a Category or Product required navigating to a separate route (`/products/new`, `/products/edit/[id]`), losing the list view entirely and requiring a full round-trip back to see the result.
+
+**How found:** Direct design feedback, referencing an external reference UI (a slide-in "Create Change" panel) as the target feel.
+
+**Ways to solve it:**
+- Keep separate pages, improve their layout and return-navigation instead.
+- Use a centered modal dialog.
+- Use a slide-in side panel that overlays the list view and closes back into it on save/cancel.
+
+**Chosen approach:** A slide-in side panel (overlay + `translate-x` transition), built once for Categories and then reused identically for Products. Keeps the list visible underneath instead of navigating away, and establishes one interaction pattern reused app-wide rather than a bespoke one per page.
+
+**After-effect:** Required decoupling `ProductForm`'s save logic from a hardcoded `router.push` redirect into an optional `onSuccess` callback, so the same form component works both embedded in a panel and on its original standalone page (which still works unmodified via the old redirect, for any direct link to it). Refined over several rounds of visual feedback into fields grouped into visually distinct card sections (identity / images / price & stock) with a gray panel background and white section cards, closely modeled on a reference screenshot the user provided.
+
+---
+
+## 16. Row-based list layout was a poor fit for image-heavy content
+
+**Problem:** The Products list reused the same horizontal-row layout as Orders and Categories. For products specifically — inherently visual, image-first items — this wasted the product image (a small 48px thumbnail) and read more like a spreadsheet than a storefront-adjacent admin tool.
+
+**How found:** Direct feedback: "can we have cards instead of these big rows."
+
+**Ways to solve it:**
+- Keep rows, just enlarge the thumbnails.
+- Switch to a responsive card grid.
+
+**Chosen approach:** A responsive card grid (2–5 columns depending on viewport), image-forward with a square-cropped thumbnail, name/price/stock and actions below. Rows were kept for Orders and Categories — dense, comparison-heavy, non-visual data — since the row-vs-card decision was made per content type rather than applying one layout uniformly across the whole app.
+
+**After-effect:** Products now render as an image-led grid; products with no uploaded image yet show a placeholder icon instead of a blank thumbnail.
+
+---
+
+## 17. Delivery agent assignment — a new domain entity, and a mid-build research correction
+
+**Problem:** Orders had no notion of who placed the order or who was handling delivery — only a boolean `delivered` flag.
+
+**How found:** Direct feature request, paired with a genuine open question from the user about whether an in-house "delivery agent" was even the right model for how real online sellers operate.
+
+**Ways to solve it:**
+- A free-text "assigned to" field per order — fastest, but no validation and no reuse of agent names.
+- A full `DeliveryAgent` model with its own management page, referenced from each order via a live assignment dropdown.
+
+**Chosen approach:** The full model. `Backorders.deliveryAgent` references a new seller-scoped `DeliveryAgent` collection (name, phone). Building this also surfaced that the existing `Order` model already captured the customer's name, email, and address at checkout — data that had never been surfaced in the seller dashboard — so populating that reference into the Orders API added Customer and Address columns for free, without any new data-capture work.
+
+**After-effect, and a self-correction:** Before extending this further, stopped to research how real e-commerce sellers actually handle delivery. Finding: most small-to-mid online sellers don't run their own delivery staff — they hand off to third-party courier aggregators (Shiprocket, Delhivery, and similar) via API, and the seller dashboard just shows a carrier name and tracking number, which is exactly how Shopify's own fulfillment UI works. The in-house `DeliveryAgent` model built here is a legitimate pattern for hyperlocal/same-city sellers, but not the majority case. Decision made: keep this feature — documented honestly as the hyperlocal-delivery path — and layer a second, more broadly representative feature on top of it next: a real third-party shipping API integration (rate shopping, label purchase, webhook-driven tracking status), matching the pattern already proven with the Stripe payment webhook. Tracked as its own case study once built, rather than treating the first attempt as the final answer.
+
+---
+
 ## What this list intentionally leaves out
 
 Being upfront about this matters as much as the fixes above: there is currently no automated test coverage in either app, and no observability (structured logging, error tracking, or metrics) beyond what these load tests measured manually. AWS deployment is also not yet complete. Load testing itself is now done and produced real numbers, as documented above; testing and observability are the next gaps worth closing. Presenting this list without these caveats would overstate where the project actually stands.

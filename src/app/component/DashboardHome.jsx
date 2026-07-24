@@ -14,6 +14,8 @@ import {
 import StatusPill from "./StatusPill";
 import { useCountUp } from "@/app/hooks/useCountUp";
 
+const GRID_COLS = "grid grid-cols-[110px_1fr_60px_90px_100px_120px] items-center gap-2";
+
 const StatCard = ({ label, value, format = (v) => v, trend }) => {
   const animatedValue = useCountUp(value);
   return (
@@ -141,35 +143,48 @@ const DashboardHome = () => {
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4">
         <h3 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Recent Orders</h3>
         {stats.recentOrders.length > 0 ? (
-          <table className="basic">
-            <thead>
-              <tr>
-                <td>Product</td>
-                <td>Qty</td>
-                <td>Price</td>
-                <td>Status</td>
-              </tr>
-            </thead>
-            <tbody>
+          <div className="border border-gray-100 dark:border-gray-700 rounded-lg">
+            <div
+              className={`${GRID_COLS} px-3 py-2 bg-gray-50 dark:bg-gray-900 rounded-t-lg text-xs font-medium text-gray-500 dark:text-gray-400 uppercase`}
+            >
+              <span>Order ID</span>
+              <span>Product</span>
+              <span className="text-center">Qty</span>
+              <span className="text-right">Price</span>
+              <span>Payment</span>
+              <span>Delivery</span>
+            </div>
+            <div className="flex flex-col divide-y divide-gray-100 dark:divide-gray-700">
               {stats.recentOrders.map((order) => (
-                <tr key={order._id}>
-                  <td>{order.productName}</td>
-                  <td>{order.quantity}</td>
-                  <td>{order.price}</td>
-                  <td className="flex gap-1">
+                <div key={order._id} className={`${GRID_COLS} px-3 py-2`}>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    #{order._id.slice(-6).toUpperCase()}
+                  </span>
+                  <span className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                    {order.productName}
+                  </span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                    {order.quantity}
+                  </span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 text-right">
+                    Rs. {order.price}
+                  </span>
+                  <span>
                     <StatusPill
                       label={order.paid ? "Paid" : "Unpaid"}
                       tone={order.paid ? "green" : "amber"}
                     />
+                  </span>
+                  <span>
                     <StatusPill
-                      label={order.delivered ? "Delivered" : "Pending"}
+                      label={order.delivered ? "Delivered" : "Processing"}
                       tone={order.delivered ? "blue" : "gray"}
                     />
-                  </td>
-                </tr>
+                  </span>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </div>
         ) : (
           <div className="text-gray-500 dark:text-gray-400 text-sm">No orders yet.</div>
         )}

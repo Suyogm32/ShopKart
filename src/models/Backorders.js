@@ -11,6 +11,7 @@ const BackOrderSchema = new Schema(
     sellerId: { type: mongoose.Types.ObjectId, ref: "User", index: true },
     orderId: { type: mongoose.Types.ObjectId, ref: "Order", index: true },
     delivered: Boolean,
+    deliveryAgent: { type: mongoose.Types.ObjectId, ref: "DeliveryAgent" },
   },
   {
     timestamps: true,
