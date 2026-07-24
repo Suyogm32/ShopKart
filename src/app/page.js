@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import Login from "./Login";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import DashboardHome from "./component/DashboardHome";
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -63,15 +64,18 @@ export default function Home() {
   } else {
     return (
       <Applayout>
-        <div className="text-blue-900 flex justify-between">
-          <h2 className="font-bold">Hello,{JSON.parse(ss.getItem("user"))?.uname}</h2>
-          <div className="flex gap-1 text-black bg-gray-200 rounde-lg overflow-hidden">
+        <div className="text-blue-900 dark:text-gray-100 flex justify-between mb-4">
+          <h2 className="font-semibold text-gray-700 dark:text-gray-200">
+            Hello, {JSON.parse(ss.getItem("user"))?.uname}
+          </h2>
+          <div className="flex gap-1 text-black dark:text-gray-100 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden items-center">
             {session.data?.user?.image && (
               <img src={session.data.user.image} alt="userimg" className="w-6 h-6 rounded-lg" />
             )}
             <span className="px-2">{JSON.parse(ss.getItem("user"))?.useremail}</span>
           </div>
         </div>
+        <DashboardHome />
       </Applayout>
     );
   }

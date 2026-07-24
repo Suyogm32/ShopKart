@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { signIn } from "next-auth/react";
+import toast from "react-hot-toast";
 
 const Login = () => {
   const [loginData, setLoginData] = useState({ email: "", password: "" });
@@ -25,7 +26,9 @@ const Login = () => {
 
       if (result?.error) {
         setError("Invalid email or password.");
+        toast.error("Invalid email or password.");
       }
+
       // On success, the useSession() hook in the parent page will update
       // automatically and re-render the authenticated dashboard.
     } catch (err) {

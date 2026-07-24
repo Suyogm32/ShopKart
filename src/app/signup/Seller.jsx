@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import toast from "react-hot-toast";
+
 const Seller = () => {
   const session = useSession();
   const initialState = {
@@ -41,14 +43,16 @@ const Seller = () => {
       const data = { ...sellerDetails, _id: uid };
       if (uid) {
         await axios.put("/api/signup", data);
+        toast.success("Profile updated.");
       } else {
         await axios.post("/api/signup", data);
+        toast.success("Account created.");
       }
       router.push("/");
     } catch (error) {
-      // Handle Axios POST request error
       console.error("Error creating product:", error);
       setError("Failed to create product. Please try again later.");
+      toast.error("Something went wrong.");
     }
   };
 

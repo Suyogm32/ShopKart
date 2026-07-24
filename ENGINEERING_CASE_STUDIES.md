@@ -67,7 +67,7 @@ Interview/resume prep material. Each entry below is a real fix made during the p
 
 **Chosen approach:** Targeted single-field indexes (`sellerId`, `category`, `orderId`, plus a `unique` index on `User.email`). Matches queries that already exist in the code; compound indexes without real query-pattern data would have been speculative.
 
-**After-effect:** Verified via lint/format; actual performance impact to be measured directly in the load test (this is one of the main before/after numbers the load test is designed to produce).
+**After-effect:** Verified via lint/format at the time, then confirmed directly with a load test: with 3,000 seeded products, the paginated + indexed endpoint held p(95) latency at 20.82ms — barely above the 11.28ms baseline measured on a near-empty dataset, despite a 250x increase in data volume. See the load-testing case study below for the full methodology and numbers.
 
 ---
 
@@ -101,7 +101,7 @@ Interview/resume prep material. Each entry below is a real fix made during the p
 
 **Chosen approach:** Cache the promise. It's the standard idiom for this exact problem in serverless/Next.js apps, and pairs naturally with an explicit `maxPoolSize: 10` to keep total connections bounded against MongoDB Atlas's free-tier connection cap.
 
-**After-effect:** Eliminates duplicate connection attempts under concurrent load — direct prep for the load test, where this bug would otherwise have shown up as mysterious connection errors under burst traffic.
+**After-effect:** Eliminated duplicate connection attempts under concurrent load. The value of this fix was proven concretely later, in an unexpected way: the exact same unfixed bug turned up independently in `ecomm-front`'s own connection helper during its load test, and fixing it there took that endpoint's p(95) from 2.12s down to 86.13ms in a single change — see the load-testing case study below.
 
 ---
 
@@ -190,6 +190,42 @@ Interview/resume prep material. Each entry below is a real fix made during the p
 
 ---
 
+## 12. Load testing my-app — proving the data-layer fixes actually hold up
+
+**Problem:** Stories 4-6 above (indexes, pagination, connection pooling) were reasoned-through fixes, verified only by lint/format and manual smoke testing. No real evidence yet that they hold up under concurrent load or at a realistic data volume — a scalability claim without a measurement behind it is just an assumption.
+
+**How found:** Not a bug report — a deliberate validation step taken before making any scalability claims in a resume or interview, on the reasoning that "I added indexes" is a much weaker statement than "I measured what indexes did."
+
+**Ways to approach it:**
+- Load test against the small dataset already sitting in the dev database.
+- Seed a large synthetic dataset first, since indexes and pagination only pay off once there's enough data that scanning all of it actually costs something.
+- Skip real numbers entirely and rely on the code change alone as the claim.
+
+**Chosen approach:** Seed a large synthetic dataset, then measure at two data volumes on the same code. Installed k6 and wrote a test script that logs in once via NextAuth's actual credentials flow — scripting the CSRF-token-then-credentials-callback exchange so the test simulates a real authenticated seller session rather than hitting open endpoints — and reuses that session across up to 50 concurrent virtual users hitting `/api/products`, `/api/orders`, and `/api/catagories`. Wrote a separate seeding script to insert 3,000 synthetic products (reusing real S3 image URLs from existing data) under a real seller account.
+
+**After-effect:** Ran the identical test at two data volumes against the same (already-fixed) code. Against the small pre-existing dataset: p(95)=11.28ms, 0% errors, ~254 req/s. Against the 3,000-product seeded dataset: p(95)=20.82ms, 0% errors, ~253 req/s sustained. Response time barely moved despite a 250x increase in data — measured evidence, not an assumption, that the indexing and pagination work scales.
+
+---
+
+## 13. Load testing ecomm-front — a wrong hypothesis that found two real bugs
+
+**Problem:** Manual testing suggested the storefront's homepage felt slow, and the working theory was that image loading was the bottleneck.
+
+**How found:** Rather than assume the hypothesis was correct, wrote a k6 script against the same 3,000-product seeded dataset that measured the product-listing API and the actual image-serving path (through Next's `/_next/image` optimization endpoint, matching what a real browser requests) as two separately tagged metrics — built specifically to test the theory, not confirm it.
+
+**What the data actually showed:** The hypothesis was wrong. Images came back fast: p(95)=787ms, under threshold. The real problem was the product-listing API itself: p(95)=16.12s, because `ecomm-front`'s `/api` route had no pagination at all and returned every product in the database on every single request — confirmed by `data_received: 1.1 GB` transferred over the course of the test.
+
+**Ways to fix it:**
+- Add pagination, matching the pattern already proven in my-app.
+- Add pagination and stop there, since "much faster" would already look like a win.
+- Add pagination, then keep investigating rather than assume one fix was sufficient.
+
+**Chosen approach:** The third option. Added `page`/`pageSize` pagination to `/api` (preserving the existing `?id=` and `?limit=` behavior used elsewhere in the app), then re-ran the test: p(95) dropped to 2.12s — a huge improvement, but still failing the 500ms threshold, with several requests hitting a full 60-second timeout. Rather than call that good enough, dug into why it was still slow instead of stopping at "much better."
+
+**After-effect:** Found that `ecomm-front` had the identical connection-pooling race condition from Story 6 above, just never fixed there — the two apps don't share code, so only `my-app`'s connection helper had been patched. Applied the same fix (cached connection promise, bounded pool size) and re-ran a third time: p(95)=86.13ms, 0% errors, 0 timeouts, throughput up to ~167 req/s. Full arc across the three runs: 16.12s → 2.12s → 86.13ms, roughly a 187x improvement — from a single load test that disproved its own starting theory and surfaced two distinct, real bugs instead of the one it went looking for.
+
+---
+
 ## What this list intentionally leaves out
 
-Being upfront about this matters as much as the fixes above: there is currently no automated test coverage in either app, no observability (structured logging, error tracking, or metrics), and no completed AWS deployment. The load test (next step) will produce real before/after numbers for the scalability work above; testing and observability are the next two items after that. Presenting this list without these caveats would overstate where the project actually stands.
+Being upfront about this matters as much as the fixes above: there is currently no automated test coverage in either app, and no observability (structured logging, error tracking, or metrics) beyond what these load tests measured manually. AWS deployment is also not yet complete. Load testing itself is now done and produced real numbers, as documented above; testing and observability are the next gaps worth closing. Presenting this list without these caveats would overstate where the project actually stands.

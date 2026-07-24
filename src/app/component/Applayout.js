@@ -5,7 +5,7 @@ import Logo from "./Logo";
 const Applayout = ({ children }) => {
   const [showNav, setShowNav] = useState(false);
   return (
-    <div className="bg-bgGray min-h-screen">
+    <div className="bg-bgGray dark:bg-gray-900 min-h-screen">
       <div className="md:hidden flex items-center p-4">
         <button onClick={() => setShowNav(true)}>
           <svg

@@ -1,6 +1,8 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Authprovider from "@/app/Authprovider/Authprovider";
+import { Toaster } from "react-hot-toast";
+import { ThemeProvider } from "next-themes";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -11,9 +13,12 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <Authprovider>{children}</Authprovider>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} dark:bg-gray-900 dark:text-gray-100`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <Authprovider>{children}</Authprovider>
+          <Toaster position="top-right" />
+        </ThemeProvider>
       </body>
     </html>
   );

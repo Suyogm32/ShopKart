@@ -26,5 +26,6 @@ export const config = {
     "/api/orders/:path*",
     "/api/catagories/:path*",
     "/api/upload/:path*",
+    "/api/dashboard/:path*",
   ],
 };

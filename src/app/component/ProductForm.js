@@ -4,12 +4,14 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import Spinner from "./Spinner";
 import { ReactSortable } from "react-sortablejs";
+import toast from "react-hot-toast";
 
 const ProductForm = ({
   _id,
   productName: existingProductName,
   description: existingDescription,
   price: existingPrice,
+  stock: existingStock,
   productImages: existingProductImages,
   category: assignedCategory,
   properties: existingProperties,
@@ -25,11 +27,13 @@ const ProductForm = ({
   const [categories, setCatagories] = useState([]);
   const [productProperties, setProductProperties] = useState(existingProperties || {});
   const ss = typeof window !== "undefined" ? window.sessionStorage : null;
+  const [stock, setStock] = useState(existingStock ?? 0);
   const router = useRouter();
 
   useEffect(() => {
     axios.get("/api/catagories").then((resp) => setCatagories(resp.data.data));
   }, []);
+
   const saveProduct = async (e) => {
     e.preventDefault();
     try {
@@ -37,27 +41,27 @@ const ProductForm = ({
         productName,
         description,
         price,
+        stock,
         productImages,
         category,
         properties: productProperties,
       };
       if (_id) {
-        //This is for updating a product in DB
         await axios.put("/api/products", { ...currentData, _id });
+        toast.success("Product updated.");
       } else {
-        //this is for creating a new product in DB
         await axios.post("/api/products", currentData);
+        toast.success("Product created.");
       }
-      // Reset form fields and error state
       setProductName("");
       setDescription("");
       setPrice("");
       setError("");
       setGoToProducts(true);
     } catch (error) {
-      // Handle Axios POST request error
       console.error("Error creating product:", error);
       setError("Failed to create product. Please try again later.");
+      toast.error("Failed to save product.");
     }
   };
 
@@ -210,7 +214,13 @@ const ProductForm = ({
         value={price}
         onChange={(e) => setPrice(e.target.value)}
       />
-
+      <label>Stock</label>
+      <input
+        type="number"
+        placeholder="stock quantity"
+        value={stock}
+        onChange={(e) => setStock(e.target.value)}
+      />
       <button className="btn-primary" type="submit">
         Save
       </button>
