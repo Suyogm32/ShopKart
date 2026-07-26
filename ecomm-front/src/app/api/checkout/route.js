@@ -21,7 +21,8 @@ async function createAggregatedDocument(line_items, currentOrder, productInfo) {
       productName: product.productName,
       quantity: lineItem.quantity,
       price: lineItem.price_data.unit_amount / 100, // Assuming this is the price from the line item
-      address: `${currentOrder.Address}, ${currentOrder.State}, ${currentOrder.Country}`,
+      address: `${currentOrder.Address}, ${currentOrder.City}, ${currentOrder.State}, ${currentOrder.Country}`,
+      city: currentOrder.City,
       postalCode: currentOrder.Postalcode,
       paid: currentOrder.Paid,
       sellerId: product.sellerId,

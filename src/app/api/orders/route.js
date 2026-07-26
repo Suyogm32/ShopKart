@@ -29,7 +29,7 @@ export const GET = withAuth(async (req, _context, session) => {
         .sort({ _id: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("orderId", "Name Email Address Postalcode State Country")
+        .populate("orderId", "Name Email Address City Postalcode State Country")
         .populate("deliveryAgent", "name phone"),
       backOrders.countDocuments(baseFilter),
       backOrders.countDocuments({ ...baseFilter, paid: { $ne: true } }),

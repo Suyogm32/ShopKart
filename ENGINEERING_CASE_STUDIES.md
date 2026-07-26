@@ -291,6 +291,47 @@ Interview/resume prep material. Each entry below is a real fix made during the p
 
 ---
 
+## 18. Integrating a real shipping carrier API — and discovering the demo was geographically incoherent
+
+**Problem:** After building an in-house delivery-agent feature (#17), research showed most real online sellers don't employ delivery staff at all — they hand off to third-party couriers via API, and the seller dashboard shows a carrier name and tracking number. The app had no such capability: an order's entire fulfilment state was one `delivered` boolean.
+
+**How found:** Not a bug — a deliberate follow-up to the research correction documented in #17, chosen specifically because it would be a *second* webhook-driven third-party integration alongside the existing Stripe one, in a different domain.
+
+**Ways to solve it:**
+- Integrate an Indian courier aggregator (Shiprocket, Delhivery) — geographically correct for this app's users.
+- Integrate a developer-first shipping API (Shippo, EasyPost) — wrong geography, but instantly accessible.
+- Skip live integration and model carrier/tracking as plain manually-entered fields.
+
+**Chosen approach:** Shippo, deliberately and with the tradeoff documented. Both Shiprocket and Delhivery gate API access behind business registration and KYC with no self-serve sandbox — Delhivery's staging credentials require emailing client services, and their developer portal assumes an existing client account. Shippo issues a test API key (`shippo_test_`) immediately with no verification. Time-to-first-successful-API-call decided it: the correct-for-India option would have blocked progress indefinitely on a portfolio project.
+
+**After-effect:** Full flow built and working end to end — rate shopping across live carrier options, label purchase returning a real tracking number and printable PDF, and a `track_updated` webhook that updates shipping status and flips `delivered` automatically when a carrier reports delivery. Several things worth recording from the build:
+
+- **Rate-shopping and label-purchase have different validation strictness.** The same address that returned rates fine was rejected at purchase time for a missing `address_from.email`, then again for a missing `phone` — discovered empirically, one failure at a time, because Shippo's required-fields list for transactions isn't documented in one place. Each fix also invalidated previously-fetched rate IDs, since rates are bound to the shipment object built from the incomplete address.
+- **Swallowed error detail cost two debugging cycles.** The initial API wrapper assumed failures always arrive as `{ detail }` and fell back to a generic message otherwise, which turned a specific carrier error into "Failed to fetch shipping rates." The same mistake repeated later: the wrapper discarded Shippo's `messages` array, so a shipment that returned zero rates surfaced as a blank "No rates available" with no reason. Both were fixed by propagating the provider's own error text through to the response. Lesson: a thin wrapper around a third-party API must not narrow the error surface, or every failure becomes a guessing game.
+- **The demo was geographically incoherent, and testing surfaced it.** Ship-from was a San Francisco warehouse; customers were in Pune. The first working version passed rate validation only because the destination was quietly replaced with a hardcoded US address — meaning every order returned identical rates for a shipment that could never physically happen (USPS Ground Advantage does not deliver to India). Rather than leave that in place, the demo's fictional store was reframed as US-based end to end: seller pickup address, customer delivery addresses, and carrier all in one country. Rates now genuinely vary by destination, which is the entire point of rate shopping. The final failure before it worked — Shippo reporting "shipment origin is out of service area" — was the seller's pickup address still holding real Indian data, which is exactly the kind of error the earlier hardcoding had been hiding.
+
+**The provider abstraction, and why it isn't decorative:** Routes never call Shippo directly. `src/lib/shipping/index.js` exposes `getRates()` and `buyLabel()`; `src/lib/shipping/shippo.js` implements them and normalises Shippo's response fields into the app's own shapes (`rateId`, `trackingNumber`, `labelUrl`) so no route or component depends on a carrier's field names. Swapping providers means adding one file and changing one line. This is a concrete plan, not a hypothetical: if Delhivery grants staging access, that is the exact shape of the migration — which is why the abstraction was built before there was a second provider to justify it.
+
+---
+
+## 19. Seller onboarding and settings — closing a multi-tenancy gap found by accident
+
+**Problem:** The signup form was a single flat column of nine unlabelled inputs, and the Settings page was literally the text "This is settings page." Separately — and more seriously — the shipping integration read its ship-from address from `SHIP_FROM_*` environment variables, meaning every seller on a supposedly multi-tenant platform shipped from the same hardcoded warehouse.
+
+**How found:** The env-var problem surfaced while deciding what Settings should contain, not from a bug report. Signup collected each seller's address at registration and then never used it anywhere — the data was already there, just disconnected from the feature that needed it.
+
+**Ways to solve it:**
+- Leave ship-from as an env var (fine for a single-seller demo, wrong for the multi-tenant model the rest of the app already implements).
+- Store a pickup address per seller and have rate-shopping read it from the logged-in seller's record.
+
+**Chosen approach:** Per-seller pickup address, managed in Settings, consumed by `/api/shipping/rates`. This also made the Settings page meaningful rather than filler — it's the reason labels can be purchased at all, and the rate endpoint now returns an actionable 422 ("add it under Settings → Pickup address") instead of silently using someone else's warehouse.
+
+**After-effect:** Settings now covers business profile, pickup address, store branding, vacation mode, and password change — the last of which didn't exist anywhere in the app before, meaning users had no way to change their own password. Research into what real seller portals expose (Shopify's store details/notifications/policies, Amazon's vacation mode and login settings) drove the section list; vacation mode came directly from that and is the one feature here with no equivalent anywhere else in the app. Signup was rebuilt as a three-step wizard (account → business → pickup address) with per-step validation, matching how Amazon and Flipkart actually onboard sellers, and with optional GSTIN/business-type fields since research confirmed GST registration is mandatory for Indian marketplace sellers from day one. Bank account and PAN were deliberately **not** collected despite being standard on real platforms — the `User` schema stores fields in plaintext with no encryption-at-rest, and storing regulated financial and identity data that way would be a genuine liability rather than a feature.
+
+**Known gap:** the vacation-mode toggle persists correctly but `ecomm-front` doesn't yet filter products by it, so a paused store's products still appear on the storefront. Recorded here rather than left to be discovered.
+
+---
+
 ## What this list intentionally leaves out
 
 Being upfront about this matters as much as the fixes above: there is currently no automated test coverage in either app, and no observability (structured logging, error tracking, or metrics) beyond what these load tests measured manually. AWS deployment is also not yet complete. Load testing itself is now done and produced real numbers, as documented above; testing and observability are the next gaps worth closing. Presenting this list without these caveats would overstate where the project actually stands.

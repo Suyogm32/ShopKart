@@ -4,7 +4,6 @@ import { signIn, useSession } from "next-auth/react";
 import React, { useState, useEffect } from "react";
 import Login from "./Login";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import DashboardHome from "./component/DashboardHome";
 
 export default function Home() {
@@ -40,41 +39,23 @@ export default function Home() {
       console.error("Error occurred during login:", error);
     }
   };
+
   if (isLoggedIn === false) {
     return (
-      <>
-        <div className="flex items-center justify-end px-2 m-3">
-          Don&apos;t have account yet?,
-          <Link href={"/signup"} className="bg-gray-200 text-black p-2 px-4 rounded-lg">
-            Sign Up
-          </Link>{" "}
+      <div className="relative min-h-screen w-full bg-white dark:bg-gray-900 overflow-hidden">
+        <img
+          src="/login-illustration.png"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover object-right pointer-events-none select-none"
+        />
+        <div className="relative z-10 min-h-screen flex items-center px-8 md:px-16 lg:px-24">
+          <Login session={session} onGoogleLogin={handleLogin} />
         </div>
-        <div className="bg-gray-200 text-black w-screen h-screen flex flex-col justify-center items-center gap-2">
-          <div className="w-auto">
-            <Login session={session} />
-            <div className="text-center w-full mt-2">
-              <button className="bg-white text-black p-2 px-4 rounded-lg" onClick={handleLogin}>
-                Login with Google
-              </button>
-            </div>
-          </div>
-        </div>
-      </>
+      </div>
     );
   } else {
     return (
       <Applayout>
-        <div className="text-blue-900 dark:text-gray-100 flex justify-between mb-4">
-          <h2 className="font-semibold text-gray-700 dark:text-gray-200">
-            Hello, {JSON.parse(ss.getItem("user"))?.uname}
-          </h2>
-          <div className="flex gap-1 text-black dark:text-gray-100 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden items-center">
-            {session.data?.user?.image && (
-              <img src={session.data.user.image} alt="userimg" className="w-6 h-6 rounded-lg" />
-            )}
-            <span className="px-2">{JSON.parse(ss.getItem("user"))?.useremail}</span>
-          </div>
-        </div>
         <DashboardHome />
       </Applayout>
     );

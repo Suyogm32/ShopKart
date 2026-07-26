@@ -59,7 +59,7 @@ const Products = () => {
   return (
     <Applayout className="px-2">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="mb-0">Products</h1>
+        <div className="mb-0">Products</div>
         <button className="btn-primary" onClick={() => setPanelProduct({})}>
           Add new product
         </button>

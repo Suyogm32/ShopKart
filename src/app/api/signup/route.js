@@ -16,6 +16,8 @@ const signupSchema = z.object({
   postalcode: z.string().optional(),
   state: z.string().optional(),
   country: z.string().optional(),
+  businessType: z.string().optional(),
+  gstin: z.string().optional(),
 });
 
 export const POST = async (req) => {
@@ -40,7 +42,8 @@ export const POST = async (req) => {
       );
     }
 
-    const { name, email, password, phone, address, city, postalcode, state, country } = parsed.data;
+   const { name, email, password, phone, address, city, postalcode, state, country, businessType, gstin } =
+      parsed.data;
 
     await mongooseConnect();
 
@@ -66,6 +69,8 @@ export const POST = async (req) => {
       postalcode,
       state,
       country,
+      businessType,
+      gstin,
     });
     await newUser.save();
 
@@ -84,14 +89,18 @@ export const POST = async (req) => {
 
 export const PUT = async (req) => {
   try {
-    const { phone, address, city, postalcode, state, country, _id } = await req.json();
+    const { name, phone, address, city, postalcode, state, country, businessType, gstin, _id } =
+      await req.json();
 
     if (!_id) {
       return NextResponse.json({ message: "User id is required." }, { status: 400 });
     }
 
     await mongooseConnect();
-    await User.updateOne({ _id }, { phone, address, city, postalcode, state, country });
+    await User.updateOne(
+      { _id },
+      { name, phone, address, city, postalcode, state, country, businessType, gstin }
+    );
 
     return NextResponse.json({ message: `User ${_id} updated successfully.` }, { status: 200 });
   } catch (error) {

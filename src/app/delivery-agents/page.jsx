@@ -79,7 +79,7 @@ const DeliveryAgents = () => {
   return (
     <Applayout>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="mb-0">Delivery Agents</h1>
+        <div className="mb-0">Delivery Agents</div>
         <button className="btn-primary" onClick={() => setShowForm(true)}>
           Add agent
         </button>
@@ -96,7 +96,10 @@ const DeliveryAgents = () => {
         <div className="flex flex-col divide-y divide-gray-100 dark:divide-gray-700">
           {agents?.length > 0 ? (
             agents.map((agent) => (
-              <div key={agent._id} className={`${GRID_COLS} px-4 py-3`}>
+              <div
+                key={agent._id}
+                className={`${GRID_COLS} px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors`}
+              >
                 <span className="font-medium text-gray-900 dark:text-gray-100">{agent.name}</span>
                 <span className="text-sm text-gray-500 dark:text-gray-400">{agent.phone}</span>
                 <span className="flex gap-2">

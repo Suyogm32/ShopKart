@@ -6,6 +6,7 @@ const OrderSchema = new Schema(
     Name: String,
     Email: String,
     Address: String,
+    City: String,
     Postalcode: String,
     State: String,
     Country: String,
@@ -15,5 +16,4 @@ const OrderSchema = new Schema(
     timestamps: true,
   }
 );
-
 export const Order = models.Order || model("Order", OrderSchema);

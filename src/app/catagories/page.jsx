@@ -121,7 +121,7 @@ const Catagories = () => {
   return (
     <Applayout>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="mb-0">Categories</h1>
+        <div className="mb-0">Categories</div>
         <button className="btn-primary" onClick={() => setShowForm(true)}>
           Add category
         </button>
@@ -138,7 +138,10 @@ const Catagories = () => {
         <div className="flex flex-col divide-y divide-gray-100 dark:divide-gray-700">
           {catagories?.length > 0 &&
             catagories.map((category) => (
-              <div key={category._id} className={`${GRID_COLS} px-4 py-3`}>
+              <div
+                key={category._id}
+                className={`${GRID_COLS} px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors`}
+              >
                 <span className="font-medium text-gray-900 dark:text-gray-100">
                   {category.catagoryName}
                 </span>

@@ -2,19 +2,21 @@
 import React, { useState } from "react";
 import Nav from "../Nav";
 import Logo from "./Logo";
+import TopBar from "./TopBar";
+
 const Applayout = ({ children }) => {
   const [showNav, setShowNav] = useState(false);
   return (
     <div className="bg-bgGray dark:bg-gray-900 min-h-screen">
       <div className="md:hidden flex items-center p-4">
-        <button onClick={() => setShowNav(true)}>
+        <button onClick={() => setShowNav(true)} aria-label="Open menu">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={1.5}
             stroke="currentColor"
-            className="w-6 h-6"
+            className="w-6 h-6 text-gray-600 dark:text-gray-300"
           >
             <path
               strokeLinecap="round"
@@ -23,13 +25,16 @@ const Applayout = ({ children }) => {
             />
           </svg>
         </button>
-        <div className="flex flex-grow justify-center mr-6 ">
+        <div className="flex flex-grow justify-center mr-6">
           <Logo />
         </div>
       </div>
       <div className="flex">
-        <Nav className="p-4 text-primary" show={showNav}></Nav>
-        <div className="w-full flex-grow p-4">{children}</div>
+        <Nav show={showNav} onClose={() => setShowNav(false)} />
+        <div className="w-full flex-grow p-4 md:p-6 min-w-0">
+          <TopBar />
+          {children}
+        </div>
       </div>
     </div>
   );

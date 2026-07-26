@@ -156,7 +156,10 @@ const DashboardHome = () => {
             </div>
             <div className="flex flex-col divide-y divide-gray-100 dark:divide-gray-700">
               {stats.recentOrders.map((order) => (
-                <div key={order._id} className={`${GRID_COLS} px-3 py-2`}>
+                <div
+                  key={order._id}
+                  className={`${GRID_COLS} px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors`}
+                >
                   <span className="text-xs text-gray-400 dark:text-gray-500">
                     #{order._id.slice(-6).toUpperCase()}
                   </span>
