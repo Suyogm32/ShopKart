@@ -10,7 +10,7 @@ export const sendOrderConfirmationEmail = async (userEmail, orderId, name, line_
   let emailContent = `Dear ${name},
     Your order with ID ${orderId} has been placed successfully.\n`;
   line_items.forEach((item) => {
-    let currentstring = `${item.price_data.product_data.name}  ${item.quantity}Qty  ₹${item.price_data.unit_amount} \n`;
+    let currentstring = `${item.price_data.product_data.name}  ${item.quantity}Qty  $${item.price_data.unit_amount} \n`;
     emailContent += currentstring;
   });
   emailContent += "Thank you! Continue shopping with us  😊\n Your order will be deilvered soon!";

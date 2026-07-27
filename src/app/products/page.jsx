@@ -105,7 +105,7 @@ const Products = () => {
                 {product.productName}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Rs. {product.price} · {product.stock ?? 0} in stock
+                ${product.price} · {product.stock ?? 0} in stock
               </p>
               <div className="flex gap-2 mt-auto pt-2">
                 <button
@@ -226,6 +226,10 @@ const Products = () => {
               productImages={panelProduct.productImages}
               category={panelProduct.category}
               properties={panelProduct.properties}
+              weight={panelProduct.weight}
+              length={panelProduct.length}
+              width={panelProduct.width}
+              height={panelProduct.height}
               onSuccess={handleSaved}
               hideInternalActions
             />

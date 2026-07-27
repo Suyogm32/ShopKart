@@ -119,9 +119,7 @@ const Profile = () => {
                 Seller since {memberSince}
               </p>
             )}
-            {uploading && (
-              <p className="text-xs text-primary mt-1">Uploading photo…</p>
-            )}
+            {uploading && <p className="text-xs text-primary mt-1">Uploading photo…</p>}
           </div>
         </section>
 

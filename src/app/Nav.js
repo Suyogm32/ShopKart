@@ -53,8 +53,7 @@ const Nav = ({ show, onClose }) => {
     }
   }, [session, status, router]);
 
-  const isActive = (href) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const isActive = (href) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
     <>

@@ -25,7 +25,12 @@ export const POST = async (req) => {
     if (orderId) {
       try {
         await mongooseConnect();
-        await Order.updateOne({ _id: orderId }, { Paid: true });
+        // payment_intent is what Stripe needs to issue a refund later — without
+        // storing it here, cancellation can't return the customer's money.
+        await Order.updateOne(
+          { _id: orderId },
+          { Paid: true, paymentIntentId: session.payment_intent }
+        );
         await backOrders.updateMany({ orderId }, { $set: { paid: true } });
 
         const order = await Order.findById(orderId);

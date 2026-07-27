@@ -16,6 +16,10 @@ const productSchema = z.object({
     .optional()
     .transform((val) => (val === "" ? undefined : val)),
   properties: z.record(z.any()).optional(),
+  weight: z.coerce.number().positive("Weight must be greater than 0.").optional(),
+  length: z.coerce.number().positive("Length must be greater than 0.").optional(),
+  width: z.coerce.number().positive("Width must be greater than 0.").optional(),
+  height: z.coerce.number().positive("Height must be greater than 0.").optional(),
 });
 
 export const POST = withAuth(async (req, _context, session) => {
@@ -81,8 +85,15 @@ export const GET = withAuth(async (req, _context, session) => {
 
 export const PUT = withAuth(async (req, _context, session) => {
   try {
-    const data = await req.json();
-    const parsed = productSchema.safeParse(data);
+    // _id is pulled out before validation — it isn't part of the product schema
+    // (Zod strips unknown keys), so parsing the whole body would discard it.
+    const { _id, ...rest } = await req.json();
+
+    if (!_id) {
+      return NextResponse.json({ message: "Product id is required." }, { status: 400 });
+    }
+
+    const parsed = productSchema.safeParse(rest);
 
     if (!parsed.success) {
       return NextResponse.json(

@@ -332,6 +332,68 @@ Interview/resume prep material. Each entry below is a real fix made during the p
 
 ---
 
+## 20. Rebuilding the storefront — and the bugs a rewrite surfaces
+
+**Problem:** The customer-facing storefront had barely been touched while the seller portal was rebuilt. It was styled-components with a dated look, and more importantly it had accumulated silent defects nobody had reason to notice.
+
+**How found:** A UI redesign pass, working from a reference storefront design. The bugs weren't the goal — they turned up because rewriting a component forces you to read every line of it.
+
+**What the rewrite surfaced, none of which was reported as a bug:**
+- `Header.jsx` began with `"use clinet"` — a misspelled directive, therefore not a directive at all. It worked only because a parent component was already a client component, so the mistake was invisible.
+- The header linked to `/catagories` and `/account`. Neither route existed. Two dead links in the primary navigation.
+- The homepage's featured product was a hardcoded document ID. Delete that one product and the hero silently renders blank.
+- `CartContext` only persisted to `localStorage` when the cart was non-empty (`if (cartProducts?.length > 0)`), so removing the last item never wrote the empty state — the old cart reappeared on refresh. **Customers could not empty their cart.**
+- `layout.js` still carried Next's default `"Create Next App"` title and description, on a site about to be deployed.
+
+**Chosen approach:** Rebuild in Tailwind (already installed but unused in that app) rather than extend styled-components, since these were full rewrites rather than tweaks — keeping the old approach would have meant editing around code being wholly replaced. Existing untouched components stay styled-components; the two systems coexist deliberately rather than through a stalled migration.
+
+**After-effect:** Header, homepage, product listing, product detail, cart, and checkout rebuilt. New capability added where the design demanded data the API couldn't provide: the storefront had no categories endpoint and no search or category filtering, so those were built to support the navigation rather than faked.
+
+**The lesson worth keeping:** every one of those defects had been in production-shaped code for months, and none would have been found by testing the happy path. They surfaced because a rewrite forces line-by-line reading. That's an argument for tests, not for rewrites — automated coverage of "cart can be emptied" would have caught the worst one immediately.
+
+---
+
+## 21. Customer accounts — and two auth systems sharing a cookie jar
+
+**Problem:** Order tracking initially required customers to paste a 24-character order ID plus their email. Functional, but poor UX, and there was no way to see more than one order at a time.
+
+**How found:** Direct feedback after using the guest lookup flow that had just been built.
+
+**Ways to solve it:**
+- Keep guest lookup and improve the UX around it.
+- Add full customer accounts with order history.
+
+**Chosen approach:** Customer accounts, with a deliberate data-model decision: a **separate `Customer` collection**, not a `role` field on the existing `User` collection. `User` holds sellers, with GSTIN, pickup addresses, and vacation mode, and it's what the admin portal authenticates against. A shared collection with a role flag would mean every auth check in both apps has to remember to verify the role — miss one and a customer account can reach the seller portal. Two collections make that failure impossible rather than merely unlikely.
+
+**The bug this created, which is genuinely non-obvious:** after adding NextAuth to the storefront, signing into one app broke the session in the other. **Cookies are scoped by host, not by origin — the port is not part of the scope.** Both apps run on `localhost`, and both NextAuth instances used the same default cookie name, so each sign-in overwrote the other's session token. Since the two apps have different `NEXTAUTH_SECRET` values, the surviving app then couldn't decrypt the token it found and errored. Fixed by namespacing the storefront's cookie names. Worth noting this isn't only a localhost problem: two apps on subdomains of the same registrable domain hit exactly the same collision.
+
+**After-effect:** Customers get accounts (email/password plus Google OAuth), an order history split into in-progress and past orders, a profile page, and a saved address book with labels and a default. Checkout requires an account and pre-selects the default address. Order cancellation with automatic Stripe refunds was built alongside it, gated on nothing having shipped yet — and deliberately sequenced so the refund succeeds *before* the order is marked cancelled, because the reverse order risks a cancelled order with the customer's money still taken.
+
+---
+
+## 22. Charging what the customer was shown — live shipping, tax, and three payment bugs
+
+**Problem:** The cart total was the sum of item prices. No tax, no shipping — while the homepage banner promised "free shipping over $80," a claim nothing in the code honoured.
+
+**How found:** Direct question about whether GST and delivery charges should be calculated, which turned into a scoping conversation about how accurate a shipping quote could realistically be.
+
+**Ways to solve it:**
+- Flat tax rate plus threshold-based shipping — hours of work, honest, approximate.
+- Live carrier rates quoted at checkout — real numbers, substantially more work.
+
+**Chosen approach:** Live rates, plus committing the demo to a single country. Quoting real shipping before payment meant confronting things the fulfilment-time version could ignore: a cart can hold items from **multiple sellers with different pickup addresses**, so quotes are grouped by seller and the cheapest rate from each is summed; and products had no weight or dimensions, so those were added to the schema and the seller product form rather than continuing to quote a hardcoded box.
+
+Committing to USD then hit a constraint no amount of code could solve: **Stripe blocks India-based accounts from accepting international payments** under India's export regulations, and this applies in test mode because test mode mirrors the account's real capabilities. Resolved by provisioning a second Stripe test account registered in the US. That's the same lesson as the Shiprocket/Delhivery finding in #18 — the API you should use and the API you're permitted to use are different questions.
+
+**Three real payment bugs found while building this, all pre-existing:**
+- **Stripe was being told the wrong unit price.** `unit_amount` was set to `quantity * price * 100`, but Stripe multiplies `unit_amount` by `quantity` itself — so ordering two of an item charged four times the price. Invisible at quantity 1, which is presumably why it survived.
+- **Seller order records inherited that same wrong number**, because the per-seller aggregate reverse-engineered its price from the Stripe line item instead of the product record. Now built from product and quantity directly.
+- **Editing any product threw a 500.** The `PUT` handler referenced an undefined `_id` — it was never destructured from the request body, and Zod strips unknown keys so parsing wouldn't have preserved it either.
+
+**After-effect:** Totals are computed by one shared module used by both the quote endpoint (what the customer sees) and the checkout endpoint (what Stripe charges), so the two cannot drift. Checkout recalculates server-side rather than trusting browser-supplied amounts. Shipping and tax are separate Stripe line items and are persisted on the order. Known simplification, recorded rather than hidden: multi-item parcels sum weights but take the largest single dimension instead of doing real box packing — accurate for one item, reasonable for a few, wrong for a large mixed cart.
+
+---
+
 ## What this list intentionally leaves out
 
 Being upfront about this matters as much as the fixes above: there is currently no automated test coverage in either app, and no observability (structured logging, error tracking, or metrics) beyond what these load tests measured manually. AWS deployment is also not yet complete. Load testing itself is now done and produced real numbers, as documented above; testing and observability are the next gaps worth closing. Presenting this list without these caveats would overstate where the project actually stands.

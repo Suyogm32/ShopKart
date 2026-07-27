@@ -42,8 +42,19 @@ export const POST = async (req) => {
       );
     }
 
-   const { name, email, password, phone, address, city, postalcode, state, country, businessType, gstin } =
-      parsed.data;
+    const {
+      name,
+      email,
+      password,
+      phone,
+      address,
+      city,
+      postalcode,
+      state,
+      country,
+      businessType,
+      gstin,
+    } = parsed.data;
 
     await mongooseConnect();
 

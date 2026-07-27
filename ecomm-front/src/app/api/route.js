@@ -27,9 +27,21 @@ export const GET = async (req) => {
     const pageSize = Math.min(Math.max(parseInt(searchParams.get("pageSize")) || 20, 1), 100);
     const skip = (page - 1) * pageSize;
 
+    const category = searchParams.get("category");
+    const search = searchParams.get("search");
+
+    const filter = {};
+    if (category) filter.category = category;
+    if (search) {
+      // Note: unindexed regex scan. Fine at this catalogue size, but the load
+      // test showed what unbounded queries cost — a text index on productName
+      // is the next step if the catalogue grows.
+      filter.productName = { $regex: search.trim(), $options: "i" };
+    }
+
     const [products, total] = await Promise.all([
-      product.find().sort({ _id: -1 }).skip(skip).limit(pageSize),
-      product.countDocuments(),
+      product.find(filter).sort({ _id: -1 }).skip(skip).limit(pageSize),
+      product.countDocuments(filter),
     ]);
 
     return new NextResponse(

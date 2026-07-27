@@ -87,7 +87,7 @@ const DashboardHome = () => {
         <StatCard
           label="Total Revenue"
           value={stats.totalRevenue}
-          format={(v) => `₹${v.toLocaleString()}`}
+          format={(v) => `$${v.toLocaleString()}`}
           trend={revenueTrend}
         />
       </div>
@@ -170,7 +170,7 @@ const DashboardHome = () => {
                     {order.quantity}
                   </span>
                   <span className="text-sm text-gray-500 dark:text-gray-400 text-right">
-                    Rs. {order.price}
+                    ${order.price}
                   </span>
                   <span>
                     <StatusPill

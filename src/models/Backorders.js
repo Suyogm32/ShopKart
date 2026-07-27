@@ -19,6 +19,7 @@ const BackOrderSchema = new Schema(
     labelUrl: String,
     shippoTransactionId: String,
     shippingStatus: String,
+    cancelled: { type: Boolean, default: false },
   },
   {
     timestamps: true,

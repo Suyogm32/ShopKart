@@ -11,9 +11,19 @@ const OrderSchema = new Schema(
     State: String,
     Country: String,
     Paid: Boolean,
+    subtotal: Number,
+    tax: Number,
+    shipping: Number,
+    total: Number,
+    paymentIntentId: String,
+    status: { type: String, default: "placed" },
+    cancelledAt: Date,
+    refundId: String,
+    customerId: { type: mongoose.Types.ObjectId, ref: "Customer", index: true },
   },
   {
     timestamps: true,
   }
 );
+
 export const Order = models.Order || model("Order", OrderSchema);

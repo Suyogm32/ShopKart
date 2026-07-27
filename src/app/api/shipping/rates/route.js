@@ -114,7 +114,6 @@ export const POST = withAuth(async (req, _context, session) => {
     }
 
     return NextResponse.json({ shipmentId, rates, hiddenRateCount });
-    
   } catch (error) {
     console.error("Rate shopping error:", error);
     return NextResponse.json(

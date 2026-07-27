@@ -1,42 +1,115 @@
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
-import { MongoDBAdapter } from "@auth/mongodb-adapter";
-import clientPromise from "@/lib/mongodb";
-import { mongooseConnect } from "@/lib/mongoose";
-import { User } from "@/models/User";
+import Google from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
+import { Customer } from "@/models/Customer";
+import { mongooseConnect } from "@/lib/mongoose";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  trustHost: true,
+  secret: process.env.NEXTAUTH_SECRET,
+  session: { strategy: "jwt" },
+  pages: { signIn: "/login" },
+  // Cookies aren't scoped by port, so both apps on localhost would otherwise
+  // share (and overwrite) the same default session cookie. Namespacing the
+  // storefront's cookies keeps the customer and seller sessions independent.
+  cookies: {
+    sessionToken: {
+      name: "shopkart-customer.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    callbackUrl: {
+      name: "shopkart-customer.callback-url",
+      options: {
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    csrfToken: {
+      name: "shopkart-customer.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
     Credentials({
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+
         await mongooseConnect();
-        const user = await User.findOne({ email: credentials.email }).select("+password");
-        if (!user || !user.password) return null;
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isValid) return null;
-        return { id: user._id.toString(), email: user.email, name: user.name };
+        const customer = await Customer.findOne({
+          email: String(credentials.email).toLowerCase().trim(),
+        });
+        // Google-only accounts have no password, so credentials login
+        // correctly fails for them rather than matching an empty hash.
+        if (!customer?.password) return null;
+
+        const valid = await bcrypt.compare(String(credentials.password), customer.password);
+        if (!valid) return null;
+
+        return { id: customer._id.toString(), name: customer.name, email: customer.email };
       },
     }),
   ],
-  adapter: MongoDBAdapter(clientPromise),
-  session: { strategy: "jwt" },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) token.id = user.id;
+    async signIn({ user, account }) {
+      if (account?.provider !== "google") return true;
+
+      try {
+        await mongooseConnect();
+        const email = user.email?.toLowerCase().trim();
+        if (!email) return false;
+
+        const existing = await Customer.findOne({ email });
+        if (!existing) {
+          await Customer.create({ name: user.name || email, email, image: user.image });
+        } else if (user.image && existing.image !== user.image) {
+          existing.image = user.image;
+          await existing.save();
+        }
+        return true;
+      } catch (error) {
+        console.error("Google sign-in callback failed:", error);
+        return false;
+      }
+    },
+
+    async jwt({ token, user, account }) {
+      if (account?.provider === "google" && user?.email) {
+        // Map the Google identity onto our own Customer _id, so the rest of
+        // the app only ever deals with one kind of user id.
+        await mongooseConnect();
+        const customer = await Customer.findOne({
+          email: user.email.toLowerCase().trim(),
+        });
+        if (customer) token.id = customer._id.toString();
+      } else if (user?.id) {
+        token.id = user.id;
+      }
       return token;
     },
+
     async session({ session, token }) {
-      if (token && session.user) session.user.id = token.id;
+      if (token?.id) session.user.id = token.id;
       return session;
     },
   },
-  pages: { signIn: "/" },
-  secret: process.env.NEXTAUTH_SECRET,
 });

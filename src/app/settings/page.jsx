@@ -14,9 +14,7 @@ const BUSINESS_TYPES = [
 const SectionCard = ({ title, description, children }) => (
   <section className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5">
     <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">{title}</h2>
-    {description && (
-      <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">{description}</p>
-    )}
+    {description && <p className="text-xs text-gray-400 dark:text-gray-500 mb-4">{description}</p>}
     <div className="flex flex-col gap-4">{children}</div>
   </section>
 );
@@ -109,7 +107,6 @@ const Settings = () => {
 
   return (
     <Applayout>
-
       <div className="max-w-2xl flex flex-col gap-4">
         <SectionCard title="Business profile" description="Your account and business details.">
           <div>

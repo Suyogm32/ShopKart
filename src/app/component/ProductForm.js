@@ -15,6 +15,10 @@ const ProductForm = ({
   productImages: existingProductImages,
   category: assignedCategory,
   properties: existingProperties,
+  weight: existingWeight,
+  length: existingLength,
+  width: existingWidth,
+  height: existingHeight,
   onSuccess,
   hideInternalActions,
 }) => {
@@ -29,6 +33,12 @@ const ProductForm = ({
   const [categories, setCatagories] = useState([]);
   const [productProperties, setProductProperties] = useState(existingProperties || {});
   const [stock, setStock] = useState(existingStock ?? 0);
+  const [weight, setWeight] = useState(existingWeight ?? 1);
+  const [dims, setDims] = useState({
+    length: existingLength ?? 10,
+    width: existingWidth ?? 8,
+    height: existingHeight ?? 4,
+  });
   const router = useRouter();
 
   useEffect(() => {
@@ -46,6 +56,10 @@ const ProductForm = ({
         productImages,
         category,
         properties: productProperties,
+        weight,
+        length: dims.length,
+        width: dims.width,
+        height: dims.height,
       };
       if (_id) {
         await axios.put("/api/products", { ...currentData, _id });
@@ -250,6 +264,37 @@ const ProductForm = ({
             value={stock}
             onChange={(e) => setStock(e.target.value)}
           />
+        </div>
+      </div>
+
+      {/* Section 4: shipping dimensions */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex flex-col gap-4">
+        <div>
+          <label>Weight (lb)</label>
+          <input
+            type="number"
+            step="0.1"
+            min="0.1"
+            value={weight}
+            onChange={(e) => setWeight(e.target.value)}
+          />
+          <p className="text-xs text-gray-400 dark:text-gray-500 -mt-1">
+            Used to quote real carrier rates at checkout.
+          </p>
+        </div>
+        <div className="flex gap-3">
+          {["length", "width", "height"].map((d) => (
+            <div className="flex-1" key={d}>
+              <label className="capitalize">{d} (in)</label>
+              <input
+                type="number"
+                step="0.5"
+                min="1"
+                value={dims[d]}
+                onChange={(e) => setDims({ ...dims, [d]: e.target.value })}
+              />
+            </div>
+          ))}
         </div>
       </div>
 

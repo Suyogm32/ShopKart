@@ -3,62 +3,103 @@ import { mongooseConnect } from "@/lib/mongoose";
 import { NextResponse } from "next/server";
 import { Order } from "@/models/Order";
 import { backOrders } from "@/models/Backorders";
+import { auth } from "@/auth";
+import { quoteShipping } from "@/lib/shipping";
+import { buildItems, computeTotals } from "@/lib/pricing";
 
 const stripe = require("stripe")(process.env.STRIPE_SK);
 
-// Assuming you have models for Product, User, and Order
-
-// Logic to create a new document in the aggregated collection when a new order is placed
-async function createAggregatedDocument(line_items, currentOrder, productInfo) {
-  const aggregatedDocuments = [];
-
-  for (const lineItem of line_items) {
-    const product = productInfo.find(
-      (product) => product.productName === lineItem.price_data.product_data.name
-    ); // Assuming productId is stored in the line item
-
-    const aggregatedDocument = {
-      productName: product.productName,
-      quantity: lineItem.quantity,
-      price: lineItem.price_data.unit_amount / 100, // Assuming this is the price from the line item
-      address: `${currentOrder.Address}, ${currentOrder.City}, ${currentOrder.State}, ${currentOrder.Country}`,
-      city: currentOrder.City,
-      postalCode: currentOrder.Postalcode,
-      paid: currentOrder.Paid,
-      sellerId: product.sellerId,
-      orderId: currentOrder._id,
-      delivered: false,
-    };
-
-    aggregatedDocuments.push(aggregatedDocument);
-  }
+// One backOrders row per line item, so each seller sees only their own part
+// of a multi-seller order.
+async function createAggregatedDocument(items, currentOrder) {
+  const aggregatedDocuments = items.map(({ product: p, quantity }) => ({
+    productName: p.productName,
+    quantity,
+    price: p.price,
+    address: `${currentOrder.Address}, ${currentOrder.City}, ${currentOrder.State}, ${currentOrder.Country}`,
+    city: currentOrder.City,
+    postalCode: currentOrder.Postalcode,
+    paid: currentOrder.Paid,
+    sellerId: p.sellerId,
+    orderId: currentOrder._id,
+    delivered: false,
+  }));
 
   await backOrders.insertMany(aggregatedDocuments);
 }
 
-export const POST = async (req, res) => {
+export const POST = async (req) => {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ message: "Please sign in to complete checkout." }, { status: 401 });
+    }
+
     await mongooseConnect();
-    const data = await req.json(); // req.body should now contain parsed JSON data
-    const { Name, Email, Address, City, Postalcode, State, Country, products } = data;
-    const uniqueIds = [...new Set(products)];
+
+    const { Name, Address, City, Postalcode, State, Country, products: productIds } =
+      await req.json();
+
+    // Email always comes from the authenticated session, never the request body —
+    // otherwise a customer could place an order under someone else's email.
+    const Email = session.user.email;
+
+    if (!Array.isArray(productIds) || productIds.length === 0) {
+      return NextResponse.json({ message: "Your cart is empty." }, { status: 400 });
+    }
+    if (!Address || !City || !Postalcode || !Country) {
+      return NextResponse.json({ message: "A complete address is required." }, { status: 400 });
+    }
+
+    const uniqueIds = [...new Set(productIds.map(String))];
     const productsInfo = await product.find({ _id: { $in: uniqueIds } });
-    let line_items = [];
-    uniqueIds.forEach((productId) => {
-      const info = productsInfo.find((p) => p._id.toString() === productId);
-      const quantity = products.filter((id) => id === productId)?.length || 0;
-      if (quantity > 0 && info) {
-        line_items.push({
-          quantity,
-          price_data: {
-            currency: "inr",
-            product_data: { name: info.productName },
-            unit_amount: quantity * info.price * 100,
-          },
-        });
-      }
+    const items = buildItems(productIds, productsInfo);
+
+    if (!items.length) {
+      return NextResponse.json({ message: "No valid products in cart." }, { status: 400 });
+    }
+
+    // Shipping and tax are recalculated here rather than trusted from the
+    // browser — the quote endpoint is for display, this is what gets charged.
+    const shipping = await quoteShipping({
+      items,
+      addressTo: { address: Address, city: City, postalcode: Postalcode, state: State, country: Country, name: Name },
     });
-    const orderData = {
+    const totals = computeTotals({ items, shippingAmount: shipping.amount });
+
+    const line_items = items.map(({ product: p, quantity }) => ({
+      quantity,
+      price_data: {
+        currency: "usd",
+        product_data: { name: p.productName },
+        // Per-unit amount. Stripe multiplies this by quantity itself.
+        unit_amount: Math.round(p.price * 100),
+      },
+    }));
+
+    if (totals.shipping > 0) {
+      line_items.push({
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          product_data: { name: "Shipping" },
+          unit_amount: Math.round(totals.shipping * 100),
+        },
+      });
+    }
+
+    if (totals.tax > 0) {
+      line_items.push({
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          product_data: { name: `Sales tax (${(totals.taxRate * 100).toFixed(2)}%)` },
+          unit_amount: Math.round(totals.tax * 100),
+        },
+      });
+    }
+
+    const currentOrder = new Order({
       line_items,
       Name,
       Email,
@@ -68,8 +109,12 @@ export const POST = async (req, res) => {
       State,
       Country,
       Paid: false,
-    };
-    const currentOrder = new Order(orderData);
+      customerId: session.user.id,
+      subtotal: totals.subtotal,
+      tax: totals.tax,
+      shipping: totals.shipping,
+      total: totals.total,
+    });
     await currentOrder.save();
 
     const paymentsession = await stripe.checkout.sessions.create({
@@ -80,14 +125,15 @@ export const POST = async (req, res) => {
       cancel_url: process.env.URL + "cart/canceled",
       metadata: { orderId: currentOrder._id.toString() },
     });
-    await createAggregatedDocument(line_items, currentOrder, productsInfo);
 
-    return new NextResponse(JSON.stringify({ url: paymentsession.url, currentOrder }), {
-      status: 201,
-    });
+    await createAggregatedDocument(items, currentOrder);
+
+    return NextResponse.json({ url: paymentsession.url, orderId: currentOrder._id }, { status: 201 });
   } catch (error) {
-    return new NextResponse("Error in paymentsession of products" + error, {
-      status: 500,
-    });
+    console.error("Checkout error:", error);
+    return NextResponse.json(
+      { message: error.message || "Error creating payment session." },
+      { status: 500 }
+    );
   }
 };

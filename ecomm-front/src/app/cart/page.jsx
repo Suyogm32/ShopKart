@@ -1,18 +1,18 @@
 "use client";
-import React, { useContext } from "react";
+import React from "react";
 import Header from "../components/Header";
-import CartContextProvider, { CartContext } from "../components/CartContext";
-import styled from "styled-components";
+import Footer from "../components/Footer";
+import CartContextProvider from "../components/CartContext";
 import { GlobalStyles } from "../page";
 import MyCart from "./Cart";
 
 const Cart = () => {
-  const { cartProducts, setCartProducts } = useContext(CartContext);
   return (
     <CartContextProvider>
       <GlobalStyles />
       <Header />
       <MyCart />
+      <Footer />
     </CartContextProvider>
   );
 };

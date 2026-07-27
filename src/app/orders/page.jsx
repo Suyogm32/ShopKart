@@ -144,7 +144,7 @@ const Order = () => {
           className="max-w-xs mb-0"
         />
       </div>
-      
+
       <div className="flex gap-2 mb-4">
         {["all", "unpaid", "processing", "delivered"].map((key) => (
           <button
@@ -191,7 +191,12 @@ const Order = () => {
             {filteredOrders.map((order) => {
               const addressLine =
                 order.address ||
-                [order.orderId?.Address, order.orderId?.City, order.orderId?.State, order.orderId?.Country]
+                [
+                  order.orderId?.Address,
+                  order.orderId?.City,
+                  order.orderId?.State,
+                  order.orderId?.Country,
+                ]
                   .filter(Boolean)
                   .join(", ");
               return (
@@ -225,7 +230,7 @@ const Order = () => {
                     {order.quantity}
                   </span>
                   <span className="text-sm text-gray-500 dark:text-gray-400 text-right">
-                    Rs. {order.price}
+                    ${order.price}
                   </span>
                   <span>
                     <StatusPill
@@ -248,7 +253,7 @@ const Order = () => {
                       >
                         {order.shippingCarrier} · {order.trackingNumber.slice(-8)}
                       </a>
-                     ) : order.delivered ? null : order.deliveryAgent ? null : order.paid ? (
+                    ) : order.delivered ? null : order.deliveryAgent ? null : order.paid ? (
                       <button
                         type="button"
                         onClick={() => openShippingPanel(order)}
@@ -319,7 +324,11 @@ const Order = () => {
 
       {totalPages > 1 && (
         <div className="flex gap-2 mt-4 items-center text-gray-700 dark:text-gray-300">
-          <button className="btn-default" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+          <button
+            className="btn-default"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => p - 1)}
+          >
             Prev
           </button>
           <span>
