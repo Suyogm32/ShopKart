@@ -394,6 +394,36 @@ Committing to USD then hit a constraint no amount of code could solve: **Stripe 
 
 ---
 
+## 23. Closing the testing gap — and what each layer actually caught
+
+**Problem:** Every entry in this document up to here was verified by hand. The project had zero automated tests, which this section previously named as its biggest gap. Several bugs documented above — the cart that couldn't be emptied, the 4× overcharge — had survived for months precisely because nobody re-checks working features by hand.
+
+**How found:** Deliberately scheduled after the storefront work, not before. Writing tests against code still being redesigned would have meant rewriting the tests alongside it.
+
+**Ways to approach it:**
+- Unit tests on pure logic only — fast to write, but misses the rules that protect money.
+- Full E2E only — highest confidence, slowest, and gives poor signal on *why* something broke.
+- Layer them: pure logic, then API contracts with mocked externals, then a browser-driven flow.
+
+**Chosen approach:** All three layers, using Jest (with `next/jest`, which supplies the SWC transform so no Babel config is needed) plus Playwright. 67 tests total: 55 Jest, 12 Playwright.
+
+The layers were chosen to cover different failure modes rather than to hit a coverage number:
+- **Pure logic** (`pricing.js`) — quantity collapsing, tax applying to goods but not shipping, float rounding. No mocking, runs in milliseconds.
+- **API handlers** (checkout, cancellation) with Mongoose, Stripe and `auth()` mocked. These encode the *money rules* as executable specifications: a shipped order can't be cancelled, a partially-shipped one counts as shipped, and critically **a failed Stripe refund must not mark the order cancelled** — get that ordering wrong and you have a cancelled order with the customer's money still taken.
+- **Browser E2E** (Playwright) — browsing, search, cart, the checkout auth gate.
+
+**What each layer actually caught, which is the interesting part:**
+
+Two Jest tests are explicit regressions for bugs hit during development, with comments naming what they guard: the empty-cart persistence bug, and the effect-ordering bug where clearing the cart before the provider finished hydrating got silently overwritten.
+
+The E2E suite earned its place on its **first real run**. A "Clear cart" button had been silently deleted during the address-picker refactor — a working feature removed by accident, unnoticed by both author and reviewer, because nobody manually re-clicks a button that already worked. Notably, the `CartContext` unit tests still passed: `clearCart` was never broken, it had just become unreachable from the UI. Only a test driving the rendered page could see that. That single failure is the clearest argument for keeping both layers rather than choosing one.
+
+A second E2E failure was instructive in the opposite direction — a test bug, not an app bug. Navigating to `/cart` immediately after clicking "add to cart" outran the cart's `localStorage` write, so the page rendered empty. Fixed by waiting on an observable consequence (the header badge) rather than adding a sleep, which is the difference between an E2E suite that stays fast and one that becomes slow and flaky anyway.
+
+**Deliberate limits, recorded rather than hidden:** E2E stops at the Stripe redirect — driving Stripe's hosted checkout tests Stripe's UI more than this app's, and the mocked route tests already cover what gets sent to it. E2E also runs against the real dev database rather than a seeded fixture; more rigorous isolation was judged not worth the maintenance cost at this size. Coverage is deliberately concentrated on money-handling paths and known-fragile logic, not spread evenly for a percentage.
+
+---
+
 ## What this list intentionally leaves out
 
-Being upfront about this matters as much as the fixes above: there is currently no automated test coverage in either app, and no observability (structured logging, error tracking, or metrics) beyond what these load tests measured manually. AWS deployment is also not yet complete. Load testing itself is now done and produced real numbers, as documented above; testing and observability are the next gaps worth closing. Presenting this list without these caveats would overstate where the project actually stands.
+Being upfront about this matters as much as the fixes above. There is no observability — no structured logging, error tracking, or metrics — beyond what the load tests measured manually, and AWS deployment is not yet complete. Test coverage now exists (see #23) but is concentrated on the storefront's money-handling paths; the seller portal has no automated tests of its own yet, and the shipping integration is covered only indirectly through mocks rather than against Shippo's sandbox. Presenting this list without these caveats would overstate where the project actually stands.

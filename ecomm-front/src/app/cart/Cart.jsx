@@ -91,7 +91,7 @@ const CartItem = ({ prod, quantity }) => {
 };
 
 const MyCart = () => {
-  const { cartProducts } = useContext(CartContext);
+  const { cartProducts, clearCart } = useContext(CartContext);
   const { data: session, status } = useSession();
 
   const [products, setProducts] = useState([]);
@@ -294,9 +294,19 @@ const MyCart = () => {
         {/* Items + address */}
         <div className="flex flex-col gap-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              Cart <span className="text-gray-400 font-normal text-lg">({cartProducts.length})</span>
-            </h1>
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-2xl font-bold text-gray-900 mb-0">
+                Cart{" "}
+                <span className="text-gray-400 font-normal text-lg">({cartProducts.length})</span>
+              </h1>
+              <button
+                type="button"
+                onClick={clearCart}
+                className="text-sm text-gray-500 hover:text-red-500 transition-colors"
+              >
+                Clear cart
+              </button>
+            </div>
             <div className="bg-white border border-gray-100 rounded-xl px-5">
               {products.map((product) => (
                 <CartItem
