@@ -38,3 +38,5 @@ res_publicKey.pub
 res_publicKey
 
 .env
+# Sentry Config File
+.env.sentry-build-plugin

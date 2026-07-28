@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.540.0",
+    "@sentry/nextjs": "^10.68.0",
     "@stripe/stripe-js": "^3.3.0",
     "axios": "^1.6.8",
     "bcryptjs": "^3.0.3",
