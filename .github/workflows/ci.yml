@@ -149,7 +149,12 @@ jobs:
           script: |
             set -e
             cd ~/ShopKart
-            git pull origin main
+
+            # Force the checkout to match origin exactly. npm install rewrites
+            # package-lock.json, which would otherwise block the next pull —
+            # and nothing on this box should ever be a source of truth.
+            git fetch origin main
+            git reset --hard origin/main
 
             npm install --legacy-peer-deps
             npm run build
