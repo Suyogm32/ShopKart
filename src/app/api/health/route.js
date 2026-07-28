@@ -15,10 +15,7 @@ export async function GET() {
     const dbUp = mongoose.connection.readyState === 1;
 
     if (!dbUp) {
-      return NextResponse.json(
-        { status: "degraded", database: "disconnected" },
-        { status: 503 }
-      );
+      return NextResponse.json({ status: "degraded", database: "disconnected" }, { status: 503 });
     }
 
     return NextResponse.json({
