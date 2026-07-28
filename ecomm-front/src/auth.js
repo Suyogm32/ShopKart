@@ -5,6 +5,11 @@ import bcrypt from "bcryptjs";
 import { Customer } from "@/models/Customer";
 import { mongooseConnect } from "@/lib/mongoose";
 
+// Secure cookies must track the actual scheme, not NODE_ENV: a secure-flagged
+// cookie is silently dropped by the browser over HTTP, which breaks the CSRF
+// token and makes every credential sign-in fail.
+const useSecureCookies = (process.env.NEXTAUTH_URL || "").startsWith("https://");
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   secret: process.env.NEXTAUTH_SECRET,
@@ -20,7 +25,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: useSecureCookies,
       },
     },
     callbackUrl: {
@@ -28,7 +33,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       options: {
         sameSite: "lax",
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: useSecureCookies,
       },
     },
     csrfToken: {
@@ -37,7 +42,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: useSecureCookies,
       },
     },
   },
