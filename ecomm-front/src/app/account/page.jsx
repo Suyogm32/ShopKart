@@ -240,7 +240,7 @@ const AccountPage = () => {
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0 text-xs">
                       <button
-                        onClick={() => setAddressForm({ ...a.toObject?.() ?? a })}
+                        onClick={() => setAddressForm({ ...(a.toObject?.() ?? a) })}
                         className="text-gray-600 hover:text-gray-900"
                       >
                         Edit

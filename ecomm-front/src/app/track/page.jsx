@@ -71,7 +71,9 @@ const OrderCard = ({ order, onChanged }) => {
                 </span>
               </div>
               {i < STATUS_STEPS.length - 1 && (
-                <span className={`flex-1 h-px ${i < currentStep ? "bg-gray-900" : "bg-gray-200"}`} />
+                <span
+                  className={`flex-1 h-px ${i < currentStep ? "bg-gray-900" : "bg-gray-200"}`}
+                />
               )}
             </React.Fragment>
           ))}
@@ -139,9 +141,7 @@ const GuestLookup = () => {
     <>
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-6 text-center">
         <p className="text-sm text-gray-700 mb-1">Sign in to see all your orders</p>
-        <p className="text-xs text-gray-500 mb-4">
-          Or look up a single order below using its ID.
-        </p>
+        <p className="text-xs text-gray-500 mb-4">Or look up a single order below using its ID.</p>
         <Link
           href="/login?next=/track"
           className="inline-block px-5 py-2 rounded-full bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 transition-colors"

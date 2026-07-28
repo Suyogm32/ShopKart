@@ -2,6 +2,9 @@ import { Catagory } from "@/models/Catagory";
 import { product } from "@/models/Product";
 import { mongooseConnect } from "@/lib/mongoose";
 import { NextResponse } from "next/server";
+// This reads from the database on every request; without it Next
+// static-optimises the route and serves a snapshot from build time.
+export const dynamic = "force-dynamic";
 
 export const GET = async () => {
   try {

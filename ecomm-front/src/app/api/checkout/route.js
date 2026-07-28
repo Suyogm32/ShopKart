@@ -32,13 +32,23 @@ export const POST = async (req) => {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ message: "Please sign in to complete checkout." }, { status: 401 });
+      return NextResponse.json(
+        { message: "Please sign in to complete checkout." },
+        { status: 401 }
+      );
     }
 
     await mongooseConnect();
 
-    const { Name, Address, City, Postalcode, State, Country, products: productIds } =
-      await req.json();
+    const {
+      Name,
+      Address,
+      City,
+      Postalcode,
+      State,
+      Country,
+      products: productIds,
+    } = await req.json();
 
     // Email always comes from the authenticated session, never the request body —
     // otherwise a customer could place an order under someone else's email.
@@ -63,7 +73,14 @@ export const POST = async (req) => {
     // browser — the quote endpoint is for display, this is what gets charged.
     const shipping = await quoteShipping({
       items,
-      addressTo: { address: Address, city: City, postalcode: Postalcode, state: State, country: Country, name: Name },
+      addressTo: {
+        address: Address,
+        city: City,
+        postalcode: Postalcode,
+        state: State,
+        country: Country,
+        name: Name,
+      },
     });
     const totals = computeTotals({ items, shippingAmount: shipping.amount });
 
@@ -128,7 +145,10 @@ export const POST = async (req) => {
 
     await createAggregatedDocument(items, currentOrder);
 
-    return NextResponse.json({ url: paymentsession.url, orderId: currentOrder._id }, { status: 201 });
+    return NextResponse.json(
+      { url: paymentsession.url, orderId: currentOrder._id },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Checkout error:", error);
     return NextResponse.json(

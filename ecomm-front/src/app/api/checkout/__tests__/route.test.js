@@ -7,7 +7,9 @@ jest.mock("@/lib/mongoose", () => ({ mongooseConnect: jest.fn().mockResolvedValu
 jest.mock("@/auth", () => ({ auth: jest.fn() }));
 jest.mock("@/lib/shipping", () => ({ quoteShipping: jest.fn() }));
 jest.mock("@/models/Product", () => ({ product: { find: jest.fn() } }));
-jest.mock("@/models/Backorders", () => ({ backOrders: { insertMany: jest.fn().mockResolvedValue([]) } }));
+jest.mock("@/models/Backorders", () => ({
+  backOrders: { insertMany: jest.fn().mockResolvedValue([]) },
+}));
 
 // Order is a constructor in the route, so the mock has to behave like one.
 const mockSavedOrders = [];
@@ -64,7 +66,9 @@ const PRODUCT = {
 beforeEach(() => {
   jest.clearAllMocks();
   mockSavedOrders.length = 0;
-  auth.mockResolvedValue({ user: { id: "cust1", email: "buyer@example.com", name: "Test Customer" } });
+  auth.mockResolvedValue({
+    user: { id: "cust1", email: "buyer@example.com", name: "Test Customer" },
+  });
   product.find.mockResolvedValue([PRODUCT]);
   quoteShipping.mockResolvedValue({ amount: 10, breakdown: [{ sellerId: "seller1", amount: 10 }] });
   mockSessionCreate.mockResolvedValue({ url: "https://checkout.stripe.test/session" });

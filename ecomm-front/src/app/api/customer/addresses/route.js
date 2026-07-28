@@ -16,7 +16,8 @@ const getCustomer = async (session) => {
 export const POST = async (req) => {
   try {
     const session = await auth();
-    if (!session?.user?.id) return NextResponse.json({ message: "Not signed in." }, { status: 401 });
+    if (!session?.user?.id)
+      return NextResponse.json({ message: "Not signed in." }, { status: 401 });
 
     const body = await req.json();
     const invalid = requireFields(body);
@@ -50,7 +51,8 @@ export const POST = async (req) => {
 export const PUT = async (req) => {
   try {
     const session = await auth();
-    if (!session?.user?.id) return NextResponse.json({ message: "Not signed in." }, { status: 401 });
+    if (!session?.user?.id)
+      return NextResponse.json({ message: "Not signed in." }, { status: 401 });
 
     const body = await req.json();
     if (!body?.addressId) {
@@ -83,7 +85,8 @@ export const PUT = async (req) => {
 export const DELETE = async (req) => {
   try {
     const session = await auth();
-    if (!session?.user?.id) return NextResponse.json({ message: "Not signed in." }, { status: 401 });
+    if (!session?.user?.id)
+      return NextResponse.json({ message: "Not signed in." }, { status: 401 });
 
     const { searchParams } = new URL(req.url);
     const addressId = searchParams.get("id");
