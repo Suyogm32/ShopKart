@@ -18,11 +18,13 @@ module.exports = defineConfig({
 
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 
-  // Reuses an already-running dev server if you have one, otherwise starts it.
+  // Port must be explicit: `next dev` defaults to 3000 and only lands on 3001
+  // locally because the seller portal already holds 3000. On CI nothing does.
+  // CI also runs a production build first, so serve that rather than dev.
   webServer: {
-    command: "npm run dev",
+    command: process.env.CI ? "npx next start -p 3001" : "npm run dev -- -p 3001",
     url: process.env.E2E_BASE_URL || "http://localhost:3001",
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
 });
