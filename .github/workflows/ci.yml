@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
     branches: [main]
 
 jobs:
+  # ------------------------------------------------- lint, format, build (both apps)
   build-and-lint:
     name: ${{ matrix.app }}
     runs-on: ubuntu-latest
@@ -58,3 +59,105 @@ jobs:
           STRIPE_SK: sk_test_dummy
           STRIPE_PK: pk_test_dummy
           URL: http://localhost:3000/
+
+  # ----------------------------------------------------------------- unit + API tests
+  test:
+    name: Jest (unit + API)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ecomm-front
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ecomm-front/package-lock.json
+
+      - run: npm ci --legacy-peer-deps
+      - run: npm test
+
+  # ------------------------------------------------------------------------ e2e tests
+  e2e:
+    name: Playwright (end to end)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ecomm-front
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ecomm-front/package-lock.json
+
+      - run: npm ci --legacy-peer-deps
+      - run: npx playwright install --with-deps chromium
+
+      # Unlike the build job above, E2E needs real config — it starts the app
+      # and drives it against the actual database.
+      - name: Write .env
+        run: |
+          cat <<'EOF' > .env
+          MONGODB_URI=${{ secrets.MONGODB_URI }}
+          NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL=http://localhost:3001
+          URL=http://localhost:3001/
+          STRIPE_SK=${{ secrets.STRIPE_SK }}
+          STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          SHIPPO_API_TOKEN=${{ secrets.SHIPPO_API_TOKEN }}
+          TAX_RATE=0.0875
+          SHIP_FROM_EMAIL=${{ secrets.SHIP_FROM_EMAIL }}
+          SHIP_FROM_PHONE=${{ secrets.SHIP_FROM_PHONE }}
+          EOF
+
+      - run: npm run build
+
+      - name: Run Playwright
+        run: npx playwright test
+        env:
+          E2E_BASE_URL: http://localhost:3001
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: ecomm-front/playwright-report/
+          retention-days: 7
+
+  # --------------------------------------------------------------------------- deploy
+  deploy:
+    name: Deploy to EC2
+    needs: [build-and-lint, test, e2e]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          command_timeout: 30m
+          script: |
+            set -e
+            cd ~/ShopKart
+            git pull origin main
+
+            npm install --legacy-peer-deps
+            npm run build
+
+            cd ecomm-front
+            npm install --legacy-peer-deps
+            npm run build
+
+            cd ~/ShopKart
+            pm2 restart all
+            pm2 save
