@@ -424,6 +424,51 @@ A second E2E failure was instructive in the opposite direction — a test bug, n
 
 ---
 
+## 24. Deploying to AWS — where local assumptions stop being true
+
+**Problem:** Everything above ran on localhost. A project that has never been deployed hasn't met the class of problem that only appears in production, and "it works on my machine" is not a claim worth making.
+
+**How found:** Deliberate final phase, sequenced after tests so the deployment shipped code with a suite behind it.
+
+**Ways to approach it:**
+- A managed platform (Vercel, AWS Amplify) — connect the repo, done in minutes.
+- Raw EC2 with nginx and PM2 — more work, but you own every layer.
+- Elastic Beanstalk — middle ground, AWS manages the instance from a config file.
+
+**Chosen approach:** A single `t3.micro` EC2 instance running both apps under PM2 behind an nginx reverse proxy, with Let's Encrypt for TLS. Managed platforms would have been faster but hide exactly the parts worth understanding — process supervision, reverse proxying, certificates, firewall rules. The constraint of staying inside AWS's free tier also forced real decisions rather than throwing resources at problems.
+
+**What actually broke, and why none of it could have surfaced locally:**
+
+**1 GB of RAM is not enough to build two Next.js apps.** `next build` routinely exceeds it, and the Linux OOM killer terminates the process with no useful error — the build simply dies. Fixed with a 2 GB swap file. Builds became slow (swap is disk-backed) but completed. Also relevant: `t3` instances default to *unlimited* CPU credit mode, which **bills for sustained CPU above baseline** rather than throttling — and a Next build pegs both vCPUs for minutes. Switching to Standard mode trades slower builds for a guaranteed zero bill.
+
+**Secure cookies keyed off the wrong signal.** The storefront's cookie config used `secure: process.env.NODE_ENV === "production"`. Correct-looking, and correct in most deployments — but the first deploy ran production builds over plain HTTP, so the browser silently discarded every secure-flagged cookie, the CSRF token was never stored, and *every* credential sign-in failed with `MissingCSRF`. The fix was to derive it from the actual URL scheme instead:
+
+```js
+const useSecureCookies = (process.env.NEXTAUTH_URL || "").startsWith("https://");
+```
+
+This also self-corrects when TLS is added later. Notably this is the **second** bug from the same cookie work — the first was two apps on different localhost ports silently sharing one cookie jar, because cookies are scoped by host and *not* by port. Cookie configuration is unusually good at hiding environment-dependent behaviour.
+
+**Google OAuth forced a DNS decision.** Google rejects raw IP addresses as OAuth redirect URIs entirely — not merely HTTP ones. There is no configuration that makes `http://13.x.x.x` work, so a hostname stopped being a nice-to-have and became a hard prerequisite. Resolved with free DuckDNS subdomains plus a Let's Encrypt certificate via certbot, which also unblocked the Stripe and Shippo webhooks — both require public HTTPS endpoints.
+
+**A route was silently frozen at build time.** The production build output flagged `/api/categories` as `○ (Static)` while every other API route was `ƒ (Dynamic)`. Next had found nothing dynamic in it and prerendered the response, meaning new categories would never appear on the storefront until the next rebuild. Fixed with `export const dynamic = "force-dynamic"`. This is a class of bug that cannot occur in `next dev`, where everything is dynamic by default — it only exists in production builds, and only the build output reveals it.
+
+**After-effect:** Both apps run on one instance behind nginx with hostname-based routing and auto-renewing TLS. Stripe webhooks arrive at a real public endpoint rather than a local CLI tunnel, so orders are marked paid without a developer machine involved. PM2 restarts crashed processes and restores both apps after a reboot.
+
+**What this deployment is honestly not:** a single instance with no load balancer, no health checks, no auto-scaling, and no monitoring — if it goes down, nobody is paged. Deploys are manual (`git pull`, rebuild, restart) rather than a pipeline, and the database allowlist is wider than it should be. Those are the right next steps, not things quietly omitted.
+
+---
+
 ## What this list intentionally leaves out
 
-Being upfront about this matters as much as the fixes above. There is no observability — no structured logging, error tracking, or metrics — beyond what the load tests measured manually, and AWS deployment is not yet complete. Test coverage now exists (see #23) but is concentrated on the storefront's money-handling paths; the seller portal has no automated tests of its own yet, and the shipping integration is covered only indirectly through mocks rather than against Shippo's sandbox. Presenting this list without these caveats would overstate where the project actually stands.
+Being upfront about this matters as much as the fixes above.
+
+There is **no observability** — no structured logging, error tracking, or metrics. Diagnosis in production means SSHing in and reading `pm2 logs`. If the site broke right now, nobody would know until someone opened it.
+
+**Test coverage is real but narrow** (see #23). It concentrates on the storefront's money-handling paths; the seller portal has no automated tests of its own, and the shipping integration is covered through mocks rather than against Shippo's sandbox.
+
+**The deployment is a single instance** (see #24) with no load balancer, health checks, or auto-scaling, and deploys are manual rather than a CI/CD pipeline. The MongoDB Atlas allowlist is wider than it should be.
+
+**Some integrations stand in for what production would really use.** Shippo replaces an Indian courier because Shiprocket and Delhivery gate API access behind business KYC; the store was reframed as US-based so shipping, addresses and currency stay internally consistent. Both are documented tradeoffs (#18, #22), not oversights — but they are simplifications.
+
+Presenting this list without these caveats would overstate where the project actually stands.
