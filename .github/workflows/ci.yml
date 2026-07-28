@@ -150,9 +150,11 @@ jobs:
             set -e
             cd ~/ShopKart
 
-            # Force the checkout to match origin exactly. npm install rewrites
-            # package-lock.json, which would otherwise block the next pull —
-            # and nothing on this box should ever be a source of truth.
+            # Node sizes its default heap from available RAM — about 460MB on a
+            # 1GB box, which Next + the Sentry webpack plugin exceeds. Swap
+            # doesn't help: this is V8's own ceiling, not the OS running out.
+            export NODE_OPTIONS="--max-old-space-size=1536"
+
             git fetch origin main
             git reset --hard origin/main
 
