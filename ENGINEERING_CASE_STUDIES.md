@@ -459,11 +459,39 @@ This also self-corrects when TLS is added later. Notably this is the **second** 
 
 ---
 
+## 25. CI/CD and the first steps toward observability
+
+**Problem:** Deploys were manual — SSH in, pull, build twice, restart. The test suite from #23 only ran when someone remembered to run it. And production was unobserved: if the site broke, nobody would know until they happened to open it.
+
+**How found:** The two remaining gaps this document had been naming since #23.
+
+**Chosen approach:** CI/CD first, deliberately — every later change ships through the pipeline instead of by hand, so the work compounds. GitHub Actions runs lint, format check, and a production build of *both* apps, then Jest, then Playwright. Only when all of those pass does a deploy job SSH into EC2 and roll out. Pull requests run the same checks but never deploy.
+
+**What broke, and what each failure taught:**
+
+**Playwright's dev server never came up in CI.** The `webServer` command was `npm run dev`, which binds port 3000 — it only lands on 3001 locally because the seller portal already holds 3000 and Next auto-increments. On a clean runner nothing does, so Playwright waited on an empty port until timeout. Fixed by making the port explicit, and by serving the production build in CI rather than dev — so E2E exercises the same output that gets deployed.
+
+**The second deploy could never succeed.** `npm install` rewrites `package-lock.json` on the server, so the next `git pull` found local modifications and aborted. The deploy target was being treated as a workspace. Fixed with `git fetch` + `git reset --hard origin/main`: the server mirrors origin rather than merging with it, which also makes deploys idempotent regardless of what the previous run left behind.
+
+**Adding Sentry broke the build in a way swap could not fix.** The earlier swap file (#24) solved the *OS* OOM killer. This was different: V8 sizes its own heap ceiling from available RAM — about 460 MB on a 1 GB instance — and refuses to grow past it no matter how much swap exists. Sentry's webpack plugin pushed the build over that line. Fixed by raising `--max-old-space-size` and expanding swap to back it. Two OOM failures, two genuinely different causes, and the second one is invisible if you assume the first fix generalises.
+
+**After-effect:** Push to main now runs four jobs and, if all pass, deploys automatically. Deploys take ~13 minutes, almost all of it paging to disk while building with a 1.5 GB heap on a 1 GB machine — the honest cost of free-tier hardware. Health check endpoints in both apps verify database reachability and return **503, not 200**, when Mongo is unreachable; UptimeRobot polls those rather than the homepage, so a database outage pages you instead of reporting "up" while checkout is broken.
+
+**What this deliberately stops short of, and why:**
+
+Error tracking (Sentry) covers **only the seller portal**. The storefront — the app that handles payments, shipping quotes and checkout, and therefore the one where a silent failure actually costs an order — has no SDK installed. It was skipped because each Sentry-instrumented app makes the already-slow build slower, and this was the point where finishing beat completing. Worth being precise about a related trap: connecting the GitHub repo to Sentry provides source-code linking for errors that were already captured. It does **not** instrument an app. Repo connected ≠ app monitored.
+
+Structured logging was skipped entirely; production diagnosis is still `pm2 logs`. There's no log aggregation, no metrics, and no alerting beyond uptime.
+
+The 13-minute deploy has a known fix that wasn't taken: build on the CI runner (16 GB of RAM) and ship the `.next` output to the server, leaving the instance to do nothing but restart. That would cut deploys to under a minute. It's a restructure of the pipeline rather than a tweak, and was left as the obvious next step rather than rushed.
+
+---
+
 ## What this list intentionally leaves out
 
 Being upfront about this matters as much as the fixes above.
 
-There is **no observability** — no structured logging, error tracking, or metrics. Diagnosis in production means SSHing in and reading `pm2 logs`. If the site broke right now, nobody would know until someone opened it.
+**Observability is partial** (see #25). Uptime monitoring and health checks exist for both apps, but error tracking covers only the seller portal — the customer-facing storefront, where payments and checkout live, has no Sentry SDK installed. There is no structured logging, no log aggregation, and no metrics; production diagnosis is still SSH plus `pm2 logs`.
 
 **Test coverage is real but narrow** (see #23). It concentrates on the storefront's money-handling paths; the seller portal has no automated tests of its own, and the shipping integration is covered through mocks rather than against Shippo's sandbox.
 
