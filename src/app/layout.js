@@ -9,8 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata = {
   metadataBase: new URL("https://shopkart-admin-sm.duckdns.org"),
   title: "Shopkart Seller Portal",
-  description:
-    "Manage products, orders, shipping labels and store settings.",
+  description: "Manage products, orders, shipping labels and store settings.",
   openGraph: {
     title: "Shopkart Seller Portal",
     description:
